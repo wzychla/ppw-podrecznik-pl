@@ -1,0 +1,116 @@
+﻿\subsection{Subclassowanie okien}
+
+Często przechwytywanie zdarzeń nie wystarcza, a programista chciałby sięgnąć głębiej, aż na poziom
+komunikatów. 
+
+\subsubsection{Obsługa komunikatów własnych okien}
+
+Obsługa komunikatów nie nastręcza żadnych kłopotów jeśli to programista tworzy klasę
+opisującą okno. Wystarczy po prostu przeciążyć metodę {\bf WndProc}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace Example
+{
+  public class CMainForm : Form
+  {   
+    const int WM_LBUTTONDBLCLK = 0x0203;
+
+    protected override void WndProc( ref Message m )
+    {
+       switch ( m.Msg )
+       {
+         case WM_LBUTTONDBLCLK : MessageBox.Show( "Dwuklik!" ); break;
+       }
+       base.WndProc( ref m );
+    }
+
+    public CMainForm()
+    {
+      this.Text = "Okno"; 
+      this.Size = new Size( 200, 200 );
+    }
+
+    public static void Main()
+    {
+       Application.Run( new CMainForm() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Struktura {\bf Message} przechowuje w sobie wszystkie parametry komunikatu ({\bf LParam}, {\bf WParam}, itd.),
+ma również metodę {\bf GetLParam}, która służy do rzutowania parametru przekazanego w {\bf LParam} na wskazany
+typ.
+
+Warto zwrócić uwagę na konieczność wywołania funkcji {\bf WndProc} z klasy bazowej. Bez tego wywołania okno
+nie utworzy się, bowiem zabraknie mu większości potrzebnej funkcjonalności.
+
+\subsubsection{Obsługa komunikatów istniejących okien}
+
+Przedstawiona w poprzednim podrozdziale technika nie nadaje się do obsługi komunikatów w już istniejących
+komponentach, na przykład {\bf TextBox} czy {\bf Button}. Możnaby co prawda przeciążyć już istniejący komponent
+i dodać obsługę komunikatów do klasy potomnej, ale interesująca byłaby możliwość taka jak opisana na stronie
+\pageref{subclassingAPIFunkcje}, czyli dodawanie własnej funkcji obsługi do już istniejącego
+okna.
+
+Okazuje się, że i taki scenariusz jest możliwy, wymaga jedynie utworzenia klasy dziedziczącej z klasy
+{\bf NativeWindow} i skojarzenia uchwytów okien. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace Example
+{
+  public class CSubclass : NativeWindow
+  {
+    const int WM_LBUTTONDBLCLK = 0x0203;
+
+    protected override void WndProc( ref Message m )
+    {
+       switch ( m.Msg )
+       {
+         case WM_LBUTTONDBLCLK : MessageBox.Show( "Dwuklik!" ); break;
+       }
+       base.WndProc( ref m );
+    }
+
+    public CSubclass() {} 
+  }
+
+  public class CMainForm : Form
+  {   
+    CSubclass subclass = new CSubclass();
+    TextBox t;
+
+    public CMainForm()
+    {
+      t = new TextBox();
+      this.Controls.Add( t );
+
+      // subclassing okna potomnego
+      subclass.AssignHandle( t.Handle );
+
+      this.Text = "Okno"; 
+      this.Size = new Size( 200, 200 );      
+    }
+
+    public static void Main()
+    {
+       Application.Run( new CMainForm() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+

@@ -1,0 +1,655 @@
+﻿\section{Procesy, wątki, synchronizacja}
+
+\subsection{Tworzenie wątków i procesów}
+
+Zadaniem systemu operacyjnego jest wykonywanie programów, przechowywanych najczęściej
+na różnego rodzaju nośnikach. Z punktu widzenia systemu operacyjnego, {\bf program} to więc
+nic więcej niż plik, w którym przechowywany jest obraz kodu wynikowego programu.
+
+Program uaktywnia się w wyniku jawnego utworzenia przez system operacyjny {\bf procesu}, który
+odpowiada obrazowi programu. W systemie Windows do tworzenia procesu służy funkcja:
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL CreateProcess(
+
+    LPCTSTR lpApplicationName,	// nazwa modułu wykonywalnego
+    LPTSTR lpCommandLine,	// linia poleceń
+    LPSECURITY_ATTRIBUTES lpProcessAttributes,	// atrybuty bezpieczeństwa procesu
+    LPSECURITY_ATTRIBUTES lpThreadAttributes,	// atrybuty bezpieczeństwa wątku
+    BOOL bInheritHandles,	// dziedziczenie uchwytów
+    DWORD dwCreationFlags,	// dodatkowe flagi, np. priorytet
+    LPVOID lpEnvironment,	// środowisko
+    LPCTSTR lpCurrentDirectory,	
+    LPSTARTUPINFO lpStartupInfo,	// własciwości startowe okna
+    LPPROCESS_INFORMATION lpProcessInformation 	// zwraca informacje o procesie i wątku
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Proces po załadowaniu do systemu nie wykonuje kodu, dostarcza jedynie przestrzeni adresowej {\em wątkom}.
+To wątki są jednostkami, którym system przydziela czas procesora. Każdy proces w systemie ma niejawnie
+utworzony jeden wątek wykonujący kod programu. Każdy następny wątek w obrębie jednego procesu musi
+być utworzony {\em explicite}. 
+
+Tworzenie wielu wątków w obrębie jednego procesu jest czasami bardzo przydatne. 
+Wątki mogą na przykład przejmować na siebie długotrwałe obliczenia nie powodując "zamierania" całego
+procesu. Ponieważ wątki współdzielą zmienne globalne procesu, możliwa jest niednoczesna praca wielu wątków na
+jakimś zbiorze danych procesu. 
+
+Podsumujmy związek pomiędzy procesami a wątkami:  
+\begin{itemize}
+  \item Proces nie wykonuje kodu, proces jest obiektem dostarczającym wątkowi przestrzeni adresowej,   
+  \item Kod zawarty w przestrzeni adresowej procesu jest wykonywany przez wątek,   
+  \item Pierwszy wątek procesu tworzony jest implicite przez system operacyjny, 
+        każdy następny musi być utworzony explicite,   
+  \item Wszystkie wątki tego samego procesu dzielą wirtualną przestrzeń adresową i 
+        mają dostęp do tych samych zmiennych globalnych i zasobów systemowych.  
+\end{itemize}
+   
+Do tworzenia dodatkowych wątków w obrębie jednego procesu służy funkcja:
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE CreateThread(
+
+    LPSECURITY_ATTRIBUTES lpThreadAttributes,	// atrybuty bezpieczeństwa wątku
+    DWORD dwStackSize,	// rozmiar stosu (0 - domyślny)
+    LPTHREAD_START_ROUTINE lpStartAddress,	// wskaźnik na funkcję wątku
+    LPVOID lpParameter,	// wskaźnik na argument
+    DWORD dwCreationFlags,	// dodatkowe flagi 
+    LPDWORD lpThreadId 	// zwraca identyfikator wątku
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Po utworzeniu nowy wątek jest wykonywany równolegle z pozostałymi wątkami w systemie. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* 
+ * Tworzenie wątków
+ */
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+  
+DWORD WINAPI ThreadProc(LPVOID* theArg);  
+   
+int main(int argc, char *argv[])  
+{  
+  DWORD threadID;  
+  DWORD thread_arg = 4;  
+   
+  HANDLE hThread = CreateThread( NULL, 0, 
+                   (LPTHREAD_START_ROUTINE)ThreadProc, 
+		   &thread_arg, 0, &threadID );  
+
+  WaitForSingleObject( hThread, INFINITE );                                   
+   
+  return 0;  
+}  
+
+DWORD ThreadProc(LPVOID* theArg)  
+{  
+    DWORD timestoprint = (DWORD)*theArg;  
+    for (int i = 0; i<timestoprint; i++)  
+      printf("Witam %d \n", i);  
+    return TRUE;   
+}  
+\end{verbatim}
+\end{scriptsize}
+  
+Programista ma do dyspozycji kilka dodatkowych funkcji do manipulacji tworzonymi wątkami
+i procesami, m.in.:
+
+\begin{itemize}
+\item Ustalanie priorytetu wątku.
+\begin{scriptsize}
+\begin{verbatim}
+BOOL SetThreadPriority(
+
+    HANDLE hThread,	// handle to the thread 
+    int nPriority 	// thread priority level 
+   );
+\end{verbatim}
+\end{scriptsize}
+
+\item Ustalanie procesora na którym wykonuje się wątek w systemach wieloprocesorowych.
+\begin{scriptsize}
+\begin{verbatim}
+DWORD SetThreadAffinityMask (
+
+    HANDLE hThread,	// handle to the thread of interest
+    DWORD dwThreadAffinityMask	// a thread affinity mask
+   );
+\end{verbatim}
+\end{scriptsize}
+
+\end{itemize}
+
+\subsection{Synchronizacja wątków}
+
+Sytuacja w której wiele wątków jednocześnie operuje na danych globalnych procesu może 
+rodzić problemy. Wyobraźmy sobie bowiem dwa wątki mające dostęp do zmiennej globalnej.
+Niech pierwszy z wątków wykonuje następujący kod :
+
+\begin{scriptsize}
+\begin{verbatim}
+i = 0;	
+// !
+if ( i == 0 )
+{
+  ...
+}
+\end{verbatim}
+\end{scriptsize}
+
+a drugi:
+
+\begin{scriptsize}
+\begin{verbatim}
+i = 1;
+// *
+if ( i == 1 )
+{
+  ...
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli któryś z wątków zostanie przez system operacyjny wywłaszczony w miejscu oznaczonym w kodzie znakiem "*",
+drugi wątek stanie się aktywnym i wykona swoją instrukcję przypisania, po czym ponownie pierwszy wątek
+stanie się aktywny, to operacja porównania zakończy się niepowodzeniem, najprawdopodobniej wbrew intencjom 
+programisty. To czego potrzeba, aby unikać tego typu problemów, to jakaś forma kontroli nad przełączaniem
+wątków przez system.
+
+Win32API udostępnia 5 sposoby synchronizacji wątków. Są to: 
+\begin{itemize}
+  \item zdarzenia, 
+  \item mutexy, 
+  \item semafory, 
+  \item sekcje krytyczne, 
+  \item zegary oczekujące
+\end{itemize}
+
+Mechanizm sekcji krytycznej możliwy jest do wykorzystania tylko w obrębie 
+jednego procesu (do synchronizacji wątków), jednak jest to metoda 
+najszybsza i najwydajniejsza. Pozostałe metody mogą być stosowane również dla wielu procesów. 
+
+\subsubsection{Zdarzenia}
+
+Win32API umożliwia definiowanie własnych zdarzeń za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE CreateEvent(
+
+    LPSECURITY_ATTRIBUTES lpEventAttributes,	// atrybuty bezpieczeństwa
+    BOOL bManualReset,	// flaga ręcznego resetowania
+    BOOL bInitialState,	// flaga początkowego stanu
+    LPCTSTR lpName 	// nazwa
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Każdy oczekujący wątek widzi zdarzenie jako pewną dwustanową flagę: zdarzenie jest zgłoszone 
+albo odwołane. Za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL SetEvent(
+
+    HANDLE hEvent 	// uchwyt zdarzenia
+   );
+\end{verbatim}
+\end{scriptsize}
+
+informujemy system o zaistnieniu zdarzenia. 
+Od tej pory zdarzenie jest zgłoszone i wszystkie wątki oczekujące do tej pory na jego 
+zgłoszenie mogą wznowić działanie. Zdarzenie zostaje odwołane, kiedy zostanie wywołana 
+funkcja 
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL ResetEvent(
+
+    HANDLE hEvent 	// uchwyt zdarzenia
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Na zaistnienie wydarzenia w systemie wątki oczekują za pomocą 
+funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+DWORD WaitForSingleObject(
+
+    HANDLE hHandle,	        // uchwyt obiektu synchronizacji
+    DWORD dwMilliseconds 	// czas oczekiwania (INFINITE czeka aż do 
+                                // zajścia zdarzenia)
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Zdarzenie utworzone z ustawioną flagą ręcznego odwoływania 
+(CreateEvent(...,TRUE,...,...)) wymaga odwołania explicite (przez ResetEvent()), 
+natomiast zdarzenie utworzone z flagą automatycznego odwoływania (CreateEvent(...,FALSE,...,...)) 
+zostaje odwołane automatycznie po przepuszczeniu jednego wątku przez funkcję oczekującą. 
+
+Warto również omówić działanie funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL PulseEvent(
+
+    HANDLE hEvent 	// uchwyt zdarzenia
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Otóż powoduje ona zgłoszenie zdarzenia, po czym natychmiastowe jego odwołanie. 
+Działanie oczekujących wątków zależy od tego, czy zdarzenie jest odwoływane 
+automatycznie czy ręcznie (patrz paragraf wyżej): jeśli zdarzenie odwoływane jest ręcznie, 
+to funkcja PulseEvent() przepuszcza wszystkie wątki oczekujące w danej chwili na zdarzenie, 
+po czym odwołuje zdarzenie, jeśli zaś zdarzenie odwoływane jest automatycznie, to funkcja 
+PulseEvent() przepuszcza tylko jeden wątek z puli oczekujących w danej chwili 
+wątków, po czym odwołuje zdarzenie. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/*
+ * Wykorzystanie zdarzeń do synchronizacji wątków
+ */
+void main(void)  
+{  
+      HANDLE hThread[2];  
+      DWORD threadID1, threadID2;  
+      char szFileName="c:\\myfolder\\myfile.txt";  
+
+      hEvent=CreateEvent(NULL, TRUE, FALSE, "FILE_EXISTS");  
+
+      // tworzymy dwa wątki które czekają na utworzenie pliku  
+      hThread[0]=CreateThread(NULL, 0, ThreadProc1, szFileName, 0, &threadID1);  
+      hThread[1]=CreateThread(NULL, 0, ThreadProc2, szFileName, 0, &threadID1);  
+
+      HANDLE hFile=CreateFile(szFileName, GENERIC_WRITE, 0, &security, . . .);  
+
+      // kod wypełniający plik danymi np. WriteFile(...)  
+
+      // sygnalizacja wątkom tego, że dane są gotowe  
+      // wątki od ich utworzenia tylko na to czekały   
+      SetEvent(hEvent);  
+      WaitForMultipleObjects(2, hThread, TRUE, _czas_czekania_);  
+
+      CloseHandle(hEvent);  
+      CloseHandle(hFile);  
+      CloseHandle(hThread[0]);  
+      CloseHandle(hThread[1]);  
+}  
+   
+DWORD ThreadProc1(LPVOID* arg)  
+{  
+      char szFileName = (char*)arg;  
+      // tutaj wątek otwiera zdarzenie określone w module głównym  
+      HANDLE hEvent = OpenEvent(SYNCHRONIZE, FALSE, "FILE_EXISTS");  
+      // czeka na jego pojawienie się  
+      WaitForSingleObject(hEvent, INFINITE);  
+      // i czyta dane zapisane do pliku  
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, 
+                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);  
+
+      // przetwarzaj dane 
+      // ...
+      return TRUE;  
+}  
+  
+DWORD ThreadProc2(LPVOID* arg)  
+{  
+      char szFileName = (char*)arg;  
+      // tutaj wątek otwiera zdarzenie określone w module głównym  
+      HANDLE hEvent = OpenEvent(SYNCHRONIZE, FALSE, "FILE_EXISTS");  
+      // czeka na jego pojawienie się  
+      WaitForSingleObject(hEvent, INFINITE);  
+      // i czyta dane zapisane do pliku  
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, 
+                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);  
+
+      // przetwarzaj dane  
+      // ...
+      return TRUE;  
+}  
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Mutexy}
+\label{subsection_mutexy}
+
+Nazwa mutex pochodzi od angielskiego terminu mutually exclusive (wzajemnie wykluczający się). 
+Mutex jest obiektem służącym do synchronizacji. Jego stan jest ustawiony jako "sygnalizowany", 
+kiedy żaden wątek nie sprawuje nad nim kontroli oraz "niesygnalizowany" kiedy jakiś wątek 
+sprawuje nad nim kontrolę. Synchronizację za pomocą mutexów realizuje się tak, 
+że każdy wątek czeka na objęcie mutexa w posiadanie, zaś po zakończeniu operacji 
+wymagającej wyłączności, wątek uwalnia mutexa. 
+
+W celu stworzenia mutexa, wątek woła funkcję 
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE CreateMutex(
+
+    LPSECURITY_ATTRIBUTES lpMutexAttributes,	// atrybuty bezpieczeństwa
+    BOOL bInitialOwner,	// flaga własności przy tworzeniu
+    LPCTSTR lpName 	// nazwa
+   );
+\end{verbatim}
+\end{scriptsize}
+
+W chwili tworzenia wątek może zażądać natychmiastowego prawa własności do mutexa. 
+Inne wątki (nawet innych procesów) uzyskują uchwyt mutexa za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE OpenMutex(
+
+    DWORD dwDesiredAccess,	// flaga dostępu
+    BOOL bInheritHandle,	// uchwyt dziedziczony na procesy tworzone
+                                // przez CreateProcess
+    LPCTSTR lpName 	// nazwa
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Następnie czekają na objęcie mutexa w posiadanie (za pomocą WaitForSingleObject()). 
+Do uwalniania mutexów służy funkcja 
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL ReleaseMutex(
+
+    HANDLE hMutex 	// handle of mutex object  
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli wątek kończy się bez uwalniania mutexów, które posiadał, takie mutexy uważa się za porzucone. 
+Każdy czekający wątek może objąć takie mutexy w posiadanie, 
+zaś funkcja czekająca na przydział mutexa (WaitForSingleObject(), jak widać bardzo uniwersalna funkcja) 
+zwraca wartość WAIT\_ABANDONED. W takiej sytuacji warto zastanowić się, czy gdzieś nie wystąpił 
+jakiś błąd (skoro wątek, który był w posiadaniu mutexa nie oddał go explicite przez 
+ReleaseMutex(), to najprawdopodobniej został zakończony w jakiś nieprzewidziany sposób). 
+Mutexy są w działaniu bardzo podobne do semaforów. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/*
+ * Wykorzystanie mutexów do synchronizacji wątków
+ */
+void main(void)  
+{  
+      HANDLE hThread[2];  
+      DWORD threadID1, threadID2;  
+
+      char szFileName="c:\\myfolder\\myfile.txt";  
+
+      hMutex=CreateMutex(NULL, TRUE, "FILE_EXISTS");  
+
+      // tworzymy dwa wątki które czekają na utworzenie pliku  
+
+      hThread[0]=CreateThread(NULL, 0, ThreadProc1, &hMutex, 0, &threadID1);  
+      hThread[1]=CreateThread(NULL, 0, ThreadProc2, &hMutex, 0, &threadID1);  
+
+      HANDLE hFile=CreateFile(szFileName, GENERIC_WRITE, 0, &security, . . .);  
+
+      // kod wypełniający plik danymi np. WriteFile(...)  
+
+  
+      // sygnalizacja wątkom tego, że dane są gotowe  
+      // wątki od ich utworzenia tylko na to czekały   
+
+      ReleaseMutex(hMutex);  
+      WaitForMultipleObjects(2, hThread, TRUE, _czas_czekania_);  
+
+      CloseHandle(hMutex);  
+      CloseHandle(hFile);  
+      CloseHandle(hThread[0]);  
+      CloseHandle(hThread[1]);  
+}  
+
+DWORD ThreadProc1(LPVOID* arg)  
+{  
+      HANDLE hMutex = (HANDLE)(*arg);  
+      WaitForSingleObject(hMutex, INFINITE);  
+
+      // i czyta dane zapisane do pliku  
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, ...);
+
+      // przetwarzaj dane  
+      ReleaseMutex(hMutex);  
+      return TRUE;  
+}  
+
+DWORD ThreadProc2(LPVOID* arg)  
+{  
+      HANDLE hMutex = (HANDLE)(*arg);  
+      WaitForSingleObject(hMutex, INFINITE);  
+
+      // i czyta dane zapisane do pliku  
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, ...);
+
+      // przetwarzaj dane  
+      ReleaseMutex(hMutex);  
+      return TRUE;  
+}  
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Semafory}
+
+Semafory mogą być wykorzystywane tam, gdzie zasób dzielony jest na ograniczoną ilość użytkowników. 
+Semafor działa jak furtka kontrolująca ilość wątków wykonujących jakiś fragment kodu. 
+Za pomocą semaforów aplikacja może kontrolować na przykład maksymalną ilość otwartych plików, 
+czy utworzonych okien. Semafory są w działaniu bardzo podobne do mutexów. 
+
+Nowy semafor tworzony jest w funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE CreateSemaphore(
+
+    LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,	
+    LONG lInitialCount,	// początkowa wartość licznika
+    LONG lMaximumCount,	// maksymalna wartość licznika
+    LPCTSTR lpName 	// nazwa
+   );
+\end{verbatim}
+\end{scriptsize}
+
+Wątek tworzący semafor specyfikuje wartość wstępną i maksymalną licznika. 
+Inne wątki uzyskują dostęp do semafora za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+HANDLE OpenSemaphore(
+
+    DWORD dwDesiredAccess,	// dostęp
+    BOOL bInheritHandle,	// dziedziczenie
+    LPCTSTR lpName 	// nazwa
+   );
+\end{verbatim}
+\end{scriptsize}
+
+i czekają na wejście za pomocą funkcji ... (to już powinno być jasne jakiej). 
+
+Po zakończeniu pracy w sekcji krytycznej wątek uwalnia semafor za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL ReleaseSemaphore(
+
+    HANDLE hSemaphore,	// uchwyt
+    LONG lReleaseCount,	// wartość dodawana do licznika
+    LPLONG lpPreviousCount 	// otrzymuje poprzednią wartość licznika
+   );	
+ \end{verbatim}
+\end{scriptsize}
+
+Wątki nie wchodzą w posiadanie semaforów! W przypadku mutexów, 
+jeśli wątek zażąda po raz kolejny dostępu do tego mutexu, którego jest już właścicielem, 
+dostęp taki zostaje mu przyznany natychmiast. 
+
+Jeśli wątek nagle rozpocznie czekanie na ten sam semafor, to semafor zachowuje się tak, 
+jakby wejścia zażądał każdy inny wątek. Inaczej wygląda także sprawa uwalniania semaforów i mutexów: 
+mutex może być uwolniony tylko przez wątek, który jest jego właścicielem, 
+licznik semafora może być zwiększony przez dowolny wątek, który z tego semafora korzysta. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/*
+ * Wykorzystanie semaforów do synchronizacji wątków
+ */
+void main(void)  
+{  
+      HANDLE hThread[2];  
+      DWORD threadID1, threadID2;  
+      char szFileName="c:\\myfolder\\myfile.txt";  
+
+      hSemaphore=CreateSemaphore(NULL, 0, 1, "FILE_EXISTS");  
+
+      // tworzymy dwa wątki które czekają na utworzenie pliku  
+      hThread[0]=CreateThread(NULL, 0, ThreadProc1, &hSemaphore, 0, &threadID1);  
+      hThread[1]=CreateThread(NULL, 0, ThreadProc2, &hSemaphore, 0, &threadID1);  
+
+      HANDLE hFile=CreateFile(szFileName, GENERIC_WRITE, 0, &security, . . .);  
+
+      // kod wypełniający plik danymi np. WriteFile(...)  
+
+      // sygnalizacja wątkom tego, że dane są gotowe  
+      // wątki od ich utworzenia tylko na to czekały   
+
+      ReleaseSemaphore(hSemaphore, 1, NULL);  
+      WaitForMultipleObjects(2, hThread, TRUE, _czas_czekania_);  
+
+      CloseHandle(hSemaphore);  
+      CloseHandle(hFile);  
+      CloseHandle(hThread[0]);  
+      CloseHandle(hThread[1]);  
+}  
+ 
+DWORD ThreadProc1(LPVOID* arg)  
+{  
+      HANDLE hSem = OpenSemaphore( SEMAPHORE_ALL_ACCESS, "FILE_EXISTS");  
+      WaitForSingleObject(hSem, INFINITE);  
+
+      // i czyta dane zapisane do pliku  
+
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, ...);
+
+      // przetwarzaj dane  
+
+      ReleaseSemaphore(hSem, 1, NULL);  
+      return TRUE;  
+}  
+
+DWORD ThreadProc2(LPVOID* arg)  
+{  
+      HANDLE hSem = OpenSemaphore( SEMAPHORE_ALL_ACCESS, "FILE_EXISTS");  
+      WaitForSingleObject(hSem, INFINITE);  
+
+      // i czyta dane zapisane do pliku  
+
+      HANDLE hAnswerFile = ::CreateFile(szFileName, GENERIC_READ, 0, NULL, ...);
+
+      // przetwarzaj dane  
+
+      ReleaseSemaphore(hSem, 1, NULL);  
+      return TRUE;  
+}  
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Sekcja krytyczna} 
+
+Interfejs programowania Win32API udostępnia typ danych CRITICAL\_SECTION, 
+który wraz z odpowiednim zestawem funkcji może być wykorzystany do implementacji sekcji krytycznej. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/*
+ * Wykorzystanie sekcji krytycznej do synchronizacji wątków
+ */
+#include <windows.h>  
+#include <stdio.h>  
+#include <stdlib.h>  
+#include <assert.h>  
+
+#define MAXTRY 3  
+
+CRITICAL_SECTION cs;          // dzielona na wszystkie wątki  
+  
+// główny wątek programu  
+void ThreadMain(char *name)  
+{  
+      int i;  
+
+      for (i=0; i<MAXTRY; i++)  
+      {  
+            EnterCriticalSection(&cs);  
+
+            /* proszę spróbować też zamiast 
+	       powyższej linii napisać 
+			
+   			  while ( TryEnterCriticalSection(&cs)==FALSE )  
+              {  
+                  printf(“%s, czekam na wejście\n”, name);   
+                   Sleep(5); 
+              }
+              
+			  uwaga! - tylko na WinNT
+            */  
+
+            printf(“%s, jestem w sekcji krytycznej!\n”, name);  
+            Sleep(5);  
+            LeaveCritcalSection(&cs);  
+
+            printf(“%s, wyszedłem z sekcji krytycznej!\n”, name);  
+      }  
+
+}  
+
+// tworzy wątek potomny  
+
+HANDLE CreateChild(char* name)  
+{  
+      HANDLE hThread; DWORD dwId;  
+      hThread = CreateThread(NULL, 0, 
+                (LPTHREAD_START_ROUTINE)ThreadMain, 
+		(LPVOID)name, 0, &dwId);  
+
+      assert(hThread!=NULL); return hThread;            
+}  
+
+int main(void)  
+{  
+      HANDLE hT[4]; 
+
+      InitializeCriticalSection(&cs);  
+
+      hT[0]=CreateChild(“Jurek”);  
+      hT[1]=CreateChild(“Ogórek”);  
+      hT[2]=CreateChild(“Kiełbasa”);  
+      hT[3]=CreateChild(“Sznurek”);  
+
+      WaitForMultipleObjects(4, hT, TRUE, INFINITE);  
+
+      CloseHandle(hT[0]);CloseHandle(hT[1]);  
+      CloseHandle(hT[2]);CloseHandle(hT[3]);  
+
+      DeleteCriticalSection(&cs);  
+
+      return 0;  
+}  
+\end{verbatim}
+\end{scriptsize}
+

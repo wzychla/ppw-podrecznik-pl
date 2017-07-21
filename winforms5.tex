@@ -1,0 +1,240 @@
+﻿\subsection{Menu}
+
+\subsubsection{Tworzenie menu}
+
+Tworzenie menu możliwe jest dzięki dwóm typom danych:
+\begin{description}
+\item [MainMenu] który służy do tworzenia menu dla okna dialogowego
+\item [ContextMenu] który służy do tworzenia menu kontekstowych dla okien
+\end{description}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace Example
+{
+  public class CMainForm : Form
+  {   
+    TextBox tb; 
+
+    void InitMenus()
+    {
+      // MainMenu
+      MainMenu mainMenu = new MainMenu();
+
+      MenuItem mPlik = new MenuItem( "Plik" );
+      MenuItem mPlikZakoncz = new MenuItem( "Zakończ" );
+      mPlikZakoncz.Click += new EventHandler( mPlikZakoncz_Click );
+
+      mPlik.MenuItems.Add( mPlikZakoncz );
+      mainMenu.MenuItems.Add( mPlik );
+
+      this.Menu = mainMenu; 
+
+      // ContextMenu
+      ContextMenu cMenu = new ContextMenu();
+      MenuItem mZakoncz = new MenuItem( "Zakończ" );
+      cMenu.MenuItems.Add( mZakoncz );
+      
+      this.tb.ContextMenu = cMenu;
+    }
+
+    void mPlikZakoncz_Click( object sender, EventArgs e )
+    { 
+      this.Close();
+    } 
+
+    public CMainForm()
+    {
+      tb = new TextBox();
+      this.Controls.Add( tb );
+
+      InitMenus();
+    } 
+
+    public static void Main()
+    {
+      Application.Run( new CMainForm() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Obiekt typu {\bf ContextMenu}, reprezentujący menu kontekstowe, ma jeszcze jedną interesującą
+właściwość. Otóż ma on metodę {\bf Show}, która po prostu pokazuje menu kontekstowe przy
+wskazanym oknie potomnym. Jest to bardzo wygodne wtedy, kiedy menu kontekstowe powinno zostać
+ujawnione w jakiejś nietypowej sytuacji. 
+
+Wyobraźmy sobie na przykład scenariusz, w którym każdemu elementowi drzewa {\bf TreeView} powinno odpowiadać
+jakieś inne menu kontekstowe, zależne od tego, co zawiera wskazany element. Zamiast przywiązywać jakieś
+konkretne menu kontekstowe do obiektu {\bf TreeView}, programista może po prostu przechwycić 
+zdarzenie kliknięcia myszą w węzeł drzewa, sprawdzić czy kliknięto prawy klawisz myszy i dopiero
+wtedy wykorzystać metodę {\bf Show} do pokazania odpowiedniego menu kontekstowego.
+
+\subsubsection{Własne funkcje rysowania menu}
+
+Wygląd menu można uatrakcyjnić dzięki możliwości określenia własnych funkcji odpowiedzialnych
+za rysowanie elementów menu. Programista musi jedynie dodać funkcje obsługi zdarzeń {\bf DrawItem}, 
+odpowiedzialnej za rysowanie i {\bf MeasureItem}, odpowiedzialnej za określanie obszaru zajmowanego przez
+element menu\footnote{Kilku innym komponentom wizualnym również można zmieniać wygląd w taki sposób.}.
+
+W poniższym przykładzie zmieniamy sposób rysowania tylko tych pozycji menu, które widoczne są
+na pasku menu w oknie. W analogiczny sposób można jednak określić sposób rysowania pozycji rozwijalnych,
+dodając na przykład możliwość rysowania ikon obok pozycji menu itp.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace WinForms_Dodatki
+{
+  public class C_XMainMenu : System.Windows.Forms.MainMenu 
+  {
+    private void topMenu_DrawItem(object sender, 
+                                  System.Windows.Forms.DrawItemEventArgs e)
+    {
+      Rectangle mRect  = 
+        new Rectangle(e.Bounds.X, e.Bounds.Y, e.Bounds.Width, e.Bounds.Height);
+      Rectangle mRect2 = 
+        new Rectangle(e.Bounds.X, e.Bounds.Y, e.Bounds.Width+1, e.Bounds.Height+1);
+
+      if ( (e.State & DrawItemState.Selected) != 0 )  
+      {
+        e.Graphics.FillRectangle( new SolidBrush( SystemColors.Control ), mRect );
+        e.Graphics.DrawRectangle( 
+          new Pen( new SolidBrush( SystemColors.ControlDark ), 1 ), mRect );
+      }
+      else
+      if ( (e.State & DrawItemState.HotLight) != 0 ) 
+      {
+        e.Graphics.FillRectangle( new SolidBrush( SystemColors.ControlLightLight ), mRect );
+        e.Graphics.DrawRectangle( 
+          new Pen( new SolidBrush( SystemColors.ControlDark ), 1 ), mRect );
+      }
+      else
+      {
+        e.Graphics.FillRectangle( new SolidBrush(SystemColors.Control), mRect2 );
+      }
+						
+      MenuItem     mItem   = (MenuItem)sender;
+      Font         mFont   = new Font( "MS Sans Serif", 10 );
+      StringFormat sFormat = new StringFormat();
+			
+      sFormat.Alignment     = StringAlignment.Center;
+      sFormat.LineAlignment = StringAlignment.Center;
+
+      e.Graphics.DrawString(mItem.Text, mFont, new SolidBrush(Color.Black), mRect, sFormat );
+
+      mFont.Dispose();
+    }
+
+    private void topMenu_MeasureItem(object sender, 
+                            System.Windows.Forms.MeasureItemEventArgs e)
+    {
+      MenuItem     mItem = (MenuItem)sender;
+      Font         mFont = new Font( "MS Sans Serif", 10 );
+
+      SizeF sizeF  = e.Graphics.MeasureString( mItem.Text, mFont );			
+      e.ItemWidth  = (int)sizeF.Width;
+
+      mFont.Dispose();
+    }
+
+    public C_XMainMenu( Menu mMenu ) 
+    {
+      foreach ( MenuItem mItem in mMenu.MenuItems )
+      {				
+        MenuItem newMenuItem = mItem.CloneMenu();
+				
+        ApplyMenuProperties ( newMenuItem );
+        this.MenuItems.Add ( newMenuItem );
+      }			
+    }
+		
+    private void ApplyMenuProperties( MenuItem mItem )
+    {
+      if ( IsTopMenu( mItem ) )
+      {
+        mItem.OwnerDraw = true;
+        mItem.DrawItem += 
+	  new System.Windows.Forms.DrawItemEventHandler(this.topMenu_DrawItem);
+        mItem.MeasureItem += 
+	  new System.Windows.Forms.MeasureItemEventHandler(this.topMenu_MeasureItem);				
+      }
+
+      foreach ( MenuItem subMenu in mItem.MenuItems )
+        ApplyMenuProperties( subMenu );
+    }
+
+    private static bool IsTopMenu( MenuItem mItem )
+    {
+      if ( mItem.Parent == null ) return true;
+      return mItem.Parent == mItem.GetMainMenu();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Klasa {\bf C\_XMainMenu} określona jest tak, że w kodzie inicjującym menu należy po prostu napisać:
+
+\begin{scriptsize}
+\begin{verbatim}
+MainMenu mainMenu;
+...
+C_XMainMenu cxMainMenu = new C_XMainMenu( mainMenu );
+this.Menu = cxMainMenu; 
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Schowek}
+
+Dostęp do schowka systemowego możliwy jest dzięki obiektowi {\bf Clipboard}. W schowku można
+umieścić dowolny obiekt lub sprawdzić czy znajduje się tam obiekt określonego typu.
+
+Poniższy przykład umieszcza w schowku napis, a następnie wydobywa go stamtąd. Dane przekazane
+do schowka w ten sposób są dostępne dla wszystkich aplikacji w systemie, podobnie dane
+pobierane ze schowka mogą pochodzić z dowolnej aplikacji w systemie.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace Example
+{
+  public class CMainForm : Form
+  {  
+    public CMainForm() 
+    {
+      // umieść dane w schowku
+      Clipboard.SetDataObject( "Tekst przesyłany do schowka", true );
+
+      // wydobądź dane ze schowka
+      IDataObject ido = Clipboard.GetDataObject();
+      if ( ido.GetDataPresent( typeof( string ) ) )
+      {
+        string s = ido.GetData( typeof( string ) ) as string;
+        MessageBox.Show( s );
+      }
+    }
+
+    public static void Main()
+    {    
+      Application.Run( new CMainForm() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+

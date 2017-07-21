@@ -1,0 +1,823 @@
+﻿\subsection{Komunikacja między procesami}
+
+Biblioteka {\em System.Net} udostępnia komplet funkcji wspomagających komunikację za pomocą
+mechanizmów sieciowych. Programista znajdzie tu nie tylko obiektowe interfejsy dla gniazd, ale również
+wyspecjalizowane funkcje do bezpośredniej komunikacji z wybranymi usługami sieciowymi.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO
+using System.Net;
+
+namespace SimpleHttpReader
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      Uri          uri = new Uri( "http://www.ii.uni.wroc.pl" );
+      WebRequest  req  = WebRequest.Create( uri );
+      WebResponse resp = req.GetResponse();
+      Stream    stream = resp.GetResponseStream();
+      StreamReader  sr = new StreamReader( stream );
+
+      string s = sr.ReadToEnd();
+      Console.Write( s );    
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Aby przekonać się jak łatwo oprogramować gniazda, napiszmy .NETowe odpowiedniki serwera i klienta z
+rozdziału \ref{apiKomunikacja}.
+
+Kod serwera:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+// prosty moduł serwera
+// użycie: server.exe
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+
+namespace TcpSever
+{
+  public class CClientThread
+  {
+    const  string serverMsg = "Tu serwer. Odpowiadam.";
+    Socket clientSocket;
+
+    public CClientThread( Socket clientSocket )
+    {
+      this.clientSocket = clientSocket;
+    }
+
+    public void ClientThreadFunc()
+    {
+      NetworkStream nS = new NetworkStream( clientSocket );
+      StreamReader  sR = new StreamReader( nS );
+      StreamWriter  sW = new StreamWriter( nS );
+
+      while( true )
+      {
+        // odbierz wiadomość
+        string clientMessage = sR.ReadLine();
+        if ( clientMessage != null )
+          Console.WriteLine( "Otrzymano wiadomość: {0}", clientMessage );
+        else
+          break;
+
+        // odeślij odpowiedź
+        sW.WriteLine( serverMsg );
+        sW.Flush();
+      }
+
+      sR.Close();
+      sW.Close();
+    }
+  }
+
+  public class CServer
+  {
+    public const int DEFAULT_PORT   = 5000;
+ 
+    public static void Main()
+    {     
+      TcpListener tcpListener = new TcpListener( DEFAULT_PORT );
+      tcpListener.Start() ;
+	 
+      Console.WriteLine( "Serwer nasłuchuje." );
+      Console.WriteLine( "Adres: {0}, port: {1}", Dns.GetHostName(), DEFAULT_PORT );
+
+      while ( true )
+      {
+        Thread.Sleep(1);
+        if ( tcpListener.Pending() )
+        {
+          Socket socketForClient = tcpListener.AcceptSocket();
+          string clientName = 
+              String.Format( "{0} [{1}]",
+                Dns.GetHostByAddress( ((IPEndPoint)socketForClient.RemoteEndPoint).Address ).HostName,
+                ((IPEndPoint)socketForClient.RemoteEndPoint).Address.ToString()
+				            );
+          Console.WriteLine( "Zaakceptowano połączenie: serwer {0}", clientName );
+
+          CClientThread ct = new CClientThread( socketForClient );
+          Thread         t = new Thread( new ThreadStart( ct.ClientThreadFunc ) );
+          t.Start();
+        }
+      }
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kod klienta:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+// prosty moduł klienta
+// użycie: klient.exe -s:IP
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+
+namespace TcpClientNS
+{
+  public class CClient
+  {
+    const int DEFAULT_COUNT=5;
+    const int DEFAULT_PORT =5000;
+    const string DEFAULT_MESSAGE="Tu klient. Witam.";
+
+    static string szServer;
+
+    static void sposob_uzycia()
+    {
+      Console.WriteLine( "client.exe -s:IP" );
+      Environment.Exit(1);
+    }
+
+    static void WalidacjaLiniiPolecen( string[] args )
+    {
+      int i;
+
+      if ( args.Length < 1 )
+      {
+        sposob_uzycia();
+      }
+	  
+      for ( i=0; i<args.Length; i++ )
+      {
+        if ( args[i][0] == '-' )
+        {
+          switch( args[i][1].ToString().ToLower() )
+          {
+            case "s" : if ( args[i].Length > 3 )
+                       {
+                         szServer = args[i].Substring(3); 					     
+                       };
+                       break;
+            default  : sposob_uzycia(); break;
+          }
+        }
+      }
+    }
+
+    public static void Main( string[] args )
+    {
+      WalidacjaLiniiPolecen( args );
+
+      TcpClient socketForServer = new TcpClient( szServer, DEFAULT_PORT );
+
+      NetworkStream nS = socketForServer.GetStream();
+      StreamWriter  sW = new StreamWriter( nS );
+      StreamReader  sR = new StreamReader( nS );
+
+      for ( int i=0; i<DEFAULT_COUNT; i++ )
+      {
+        sW.WriteLine( DEFAULT_MESSAGE );
+        sW.Flush();
+        string message = sR.ReadLine();
+        if ( message != null )
+          Console.WriteLine( "Serwer odpowiada: {0}", message ); 
+      }
+
+      sR.Close();
+      sW.Close();
+    }
+  }  
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jak widać, opakowanie gniazd w obiektowe klasy {\em TcpListener} i {\em TcpClient} (przeznaczone
+do komunikacji przez TCP/IP), znacznie upraszcza kod odpowiedzialny za wysyłanie i odbieranie danych.
+
+\subsection{Wyrażenia regularne}
+
+Biblioteki do obsługi wyrażeń regularnych są standardowo dołączane do współczesnych języków
+programowania. Szczycą się nimi zwłaszcza języki skryptowe, ale jak zobaczymy w kolejnych przykładach,
+wszystko zależy od dobrej biblioteki.
+
+\subsubsection{Czym są {\em wyrażenia regularne}}
+
+Pojęcie "{\em wyrażenia regularne}" związane jest z przetwarzaniem tekstu. Wyrażenia
+regularne tworzą pewien szczególny język, niezależny od żadnego języka programowania, za pomocą którego
+definiujemy wzorce, wykorzystywane następnie do wyszukiwania, usuwania, czy zamieniania fragmentów tekstu.
+Wyrażenia regularne znakomicie upraszają proces parsowania na przykład stron HTML, plików XML, logów
+systemowych itd.
+
+\subsubsection{Język wyrażeń regularnych}
+
+Poniższa tabela podsumowuje wybrane zasady budowania wyrażeń regularnych.
+
+\begin{center}
+$$\begin{array}{ll}
+\mbox{Wyrażenie} & \mbox{Opis}  \\
+\hline 
+\mbox{.}        & \mbox{Każdy znak za wyjątkiem $\backslash n$} \\
+\mbox{[znaki]}  & \mbox{Pojedyńcze znaki z listy} \\
+\mbox{[znakA-znakB]} & \mbox{Znaki z podanego zakresu} \\
+\mbox{$\backslash$ w}            & \mbox{Znak tworzący słowo, równoważnie [a-zA-Z\_0-9]} \\
+\mbox{$\backslash$ W}            & \mbox{Znak nie tworzący słowa} \\ 
+\mbox{$\backslash$ s}            & \mbox{Znak biały, równoważnie [$\backslash$n$\backslash$r$\backslash$t$\backslash$f]} \\
+\mbox{$\backslash$ S}            & \mbox{Znak inny niż biały} \\
+\mbox{$\backslash$ d}            & \mbox{Cyfra, równoważnie [0-9]} \\
+\mbox{$\backslash$ D}            & \mbox{Nie-cyfra} \\
+\mbox{$\backslash$ b}            & \mbox{Na granicy słowa} \\
+\mbox{$\backslash$ B}            & \mbox{Nie na granicy słowa} \\
+\mbox{*}             & \mbox{Zero lub więcej} \\
+\mbox{+}             & \mbox{Jeden lub więcej} \\
+\mbox{?}             & \mbox{Zero lub jeden} \\
+\mbox{$\{n\}$}       & \mbox{Dokładnie $n$-razy} \\ 
+\mbox{$\{n,\}$}      & \mbox{Co najmniej $n$-razy} \\ 
+\mbox{$\{n,m\}$}     & \mbox{Co najmniej $n$ ale nie więcej niż $m$}\\ 
+\mbox{( )}         & \mbox{Podwyrażenie} \\
+\mbox{(?$<$nazwa$>$)}  & \mbox{Podwyrażenie jako nazwa} \\
+\mbox{$\vert$}         & \mbox{Alternatywa} \\ 
+\end{array}$$
+\end{center}
+
+Tak naprawdę zaprojektowanie odpowiedniego często nie jest łatwe i wymaga po prostu trochę wprawy.  
+
+\subsubsection{Dzielenie tekstu}
+
+Pierwszym przykładem zastosowania wyrażeń regularnych jest dzielenie tekstu. Tekst jest dzielony
+w miejscach, które dopasowują się do zadanego wyrażenia regularnego.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
+
+class CExample 
+{
+  public static void Main()
+  {
+    string sSplit = "Ala  ma kota a    kot ma   Ale";
+    Regex  r = new Regex( "[ ]+" );
+
+    foreach( string s in r.Split( sSplit ) )
+      Console.Write( s+"," );
+  }  
+}
+
+C:\example>example
+Ala,ma,kota,a,kot,ma,Ale,
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Wyszukiwanie wzorca}
+
+Wyszukiwanie zadanego wyrażeniem regularnym wzorca w zadanym tekście możliwe jest dzięki
+obiektom {\bf Match} i {\bf MatchCollection}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
+
+class CExample 
+{
+  public static void Main()
+  {
+    string sFind = "Dobrze jest dojsc do domu radosnie i wydobrzec do rana";
+    Regex  r = new Regex( "(do)|(a)" );
+
+    for ( Match m = r.Match( sFind ); m.Success; m = m.NextMatch() )
+      Console.Write( "'{0}' na pozycji {1}\n", m.Value, m.Index );
+  }  
+}
+
+C:\example>example
+'do' na pozycji 12
+'do' na pozycji 18
+'do' na pozycji 21
+'a' na pozycji 27
+'do' na pozycji 28
+'do' na pozycji 39
+'do' na pozycji 47
+'a' na pozycji 51
+'a' na pozycji 53
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Edycja, usuwanie tekstu}
+
+Dzięki metodzie {\bf Replace} wyrażeń regularnych można użyć do zastępowania tekstu.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
+
+class CExample 
+{
+  public static void Main()
+  {
+    string sFind = "Dobrze jest dojsc do domu radosnie i wydobrzec do rana";
+    Regex  r = new Regex( "(do)|(a)" );
+
+    Console.Write( r.Replace( sFind, "" ) );
+  }  
+}
+
+C:\example>example
+Dobrze jest jsc  mu rsnie i wybrzec  rn
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Serializacja}
+\label{csSerializacja}
+
+O {\em serializacji} mówimy wtedy, gdy instancja obiektu jest składowana na nośniku zewnętrznym.
+Mechanizm ten wykorzystywany jest również do transferu zawartości obiektów między odległymi środowiskami.
+Oczywiście łatwo wyobrazić sobie mechanizm zapisu zawartości obiektu przygotowany przez programistę,
+ale serializacja jest mechanizmem niezależnym od postaci obiektu i od tego, czy programista przewidział
+możliwość zapisu zawartości obiektu czy nie. 
+
+\subsubsection{Serializacja binarna}
+
+Aby zawartość obiektu mogła być składowana w postaci binarnej, klasa musi spełniać kilka warunków:
+\begin{itemize}
+\item Musi być oznakowana artybutem {\em Serializable}
+\item Musi implementować interfejs {\em ISerializable}
+\item Musi mieć specjalny konstruktor do deserializacji
+\end{itemize}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization.Formatters.Soap;
+
+namespace NExample
+{
+  [Serializable()]
+  public class CObiekt : ISerializable
+  {
+    int      v;
+    DateTime d;
+    string   s;
+	 
+    public CObiekt( int v, DateTime d, string s )
+    {
+      this.v = v; this.d = d; this.s = s;
+    }
+
+	// konstruktor do deserializacji
+    public CObiekt(SerializationInfo info, StreamingContext context) 
+    {
+      v = (int)info.GetValue("v", typeof(int));
+      d = (DateTime)info.GetValue("d", typeof(DateTime));
+      s = (string)info.GetValue("s", typeof(string));
+    }
+
+
+    // serializacja
+    public void GetObjectData(SerializationInfo info, 
+	                          StreamingContext context)
+    {
+      info.AddValue("v", v);
+      info.AddValue("d", d);
+      info.AddValue("s", s);
+    }
+    
+    public override string ToString()
+    {
+      return String.Format( "{0}, {1:d}, {2}", v, d, s );
+    }
+  }
+
+  public class CMain
+  {
+    static void SerializujBinarnie()
+    {
+      Console.WriteLine( "Serializacja binarna" );
+
+      CObiekt o = new CObiekt( 5, DateTime.Now, "Ala ma kota" );
+      Console.WriteLine( o );
+
+      // serializuj
+      Stream          s = File.Create( "binary.dat" );
+      BinaryFormatter b = new BinaryFormatter();
+      b.Serialize( s, o );
+      s.Close();
+
+      // deserializuj
+      Stream          t = File.Open( "binary.dat", FileMode.Open );
+      BinaryFormatter c = new BinaryFormatter();
+      CObiekt         p = (CObiekt)c.Deserialize( t );
+      t.Close();
+
+      Console.WriteLine( "Po deserializacji: " + p.ToString() );
+    }
+
+    public static void Main()
+    {
+      SerializujBinarnie();
+    }
+  }
+}
+
+c:\Example>example.exe
+Serializacja binarna
+5, 2003-04-24, Ala ma kota
+Po deserializacji: 5, 2003-04-24, Ala ma kota
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Serializacja SOAP}
+
+Serializacja binarna ma jak widać wady (wymaga specjalnie przygotowanej klasy), ma również zalety
+(jest szybka, plik wynikowy zajmuje niewiele miejsca). 
+
+Alternatywne podejście możliwe jest dzięki
+mechanizmom SOAP ({\em Simple Object Access Protocol}). SOAP jest protokołem do wymiany danych,
+opartym o nośnik XML, niezależny od systemu operacyjnego. Serializacja SOAP jest wolniejsza niż
+serializacja binarna, wynik zajmuje więcej miejsca (w końcu to plik XML), jednak w ten sposób
+można serializować dowolne obiekty.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization.Formatters.Soap;
+
+namespace NExample
+{
+  [Serializable()]
+  public class CObiekt 
+  {
+    int      v;
+    DateTime d;
+    string   s;
+	 
+    public CObiekt( int v, DateTime d, string s )
+    {
+      this.v = v; this.d = d; this.s = s;
+    }
+    
+    public override string ToString()
+    {
+      return String.Format( "{0}, {1:d}, {2}", v, d, s );
+    }
+  }
+
+  public class CMain
+  {
+    static void SerializujSOAP()
+    {
+      Console.WriteLine( "Serializacja SOAP" );
+
+      CObiekt o = new CObiekt( 5, DateTime.Now, "Ala ma kota" );
+      Console.WriteLine( o );
+
+      // serializuj
+      Stream          s = File.Create( "binary.soap" );
+      SoapFormatter   b = new SoapFormatter();
+      b.Serialize( s, o );
+      s.Close();
+
+      // deserializuj
+      Stream          t = File.Open( "binary.soap", FileMode.Open );
+      SoapFormatter   c = new SoapFormatter();
+      CObiekt         p = (CObiekt)c.Deserialize( t );
+      t.Close();
+
+      Console.WriteLine( "Po deserializacji: " + p.ToString() );
+
+    }
+
+    public static void Main()
+    {
+      SerializujSOAP();
+    }
+  }
+}
+
+c:\Example>example.exe
+Serializacja binarna
+5, 2003-04-24, Ala ma kota
+Po deserializacji: 5, 2003-04-24, Ala ma kota
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Wołanie kodu niezarządzanego}
+
+Współpraca z już istniejącymi bibliotekami jest bardzo ważnym elementem platformy .NET. Programista
+może nie tylko wołać funkcje z natywnych bibliotek, ale również korzystać z bibliotek obiektowych COM.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Runtime.InteropServices;
+
+namespace NExample
+{
+  public class CMain
+  {
+    [DllImport("user32.dll", EntryPoint="MessageBox")]
+    public static extern int MsgBox(int hWnd, String text, 
+                                    String caption, uint type);
+
+    public static void Main()
+    {
+      MsgBox( 0, "Witam", "", 0 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Wygląda to dość prosto, jednak w rzeczywistości wymaga starannego przekazania parametrów
+do funkcji napisanej najczęściej w C, a następnie odebrania wyników. Każdy typ w świecie .NET ma 
+domyślnie swojego odpowiednika w kodzie niezarządzanym, który będzie używany w komunikacji między oboma
+światami. Na przykład domyślny sposób przekazywana zmiennej zadeklarowanej jako {\em string} to LPSTR
+(wskaźnik na tablicę znaków). Programista może dość szczegółowo zapanować nad domyślnymi konwencjami dzięki
+atrybutowi {\em MarshalAs}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Runtime.InteropServices;
+
+namespace NExample
+{
+  public class CMain
+  {
+    [DllImport("user32.dll", EntryPoint="MessageBox")]
+    public static extern int MsgBox(int hWnd, 
+                                    [MarshalAs(UnmanagedType.LPStr)]
+                                    String text, 
+	                            String caption, uint type);
+
+    public static void Main()
+    {
+      MsgBox( 0, "Witam", "", 0 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Aby ustalić w ten sposób typ wartości zwracanej z funkcji należałoby napisać:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+[DllImport("user32.dll", EntryPoint="MessageBox")]
+[return: MarshalAs(UnmanagedType.I4)]
+public static extern int MsgBox(int hWnd, ...
+...
+\end{verbatim}
+\end{scriptsize}
+
+Możliwość tak dokładnego wpływania na postać parametrów jest szczególnie przydatna w typowym
+przypadku przekazywania jakiejś struktury do jakiejś funkcji, na przykład z Win32API.
+
+Przykładowa struktura z Win32API
+
+\begin{scriptsize}
+\begin{verbatim}
+typedef struct tagLOGFONT 
+{ 
+   LONG lfHeight; 
+   LONG lfWidth; 
+   LONG lfEscapement; 
+   LONG lfOrientation; 
+   LONG lfWeight; 
+   BYTE lfItalic; 
+   BYTE lfUnderline; 
+   BYTE lfStrikeOut; 
+   BYTE lfCharSet; 
+   BYTE lfOutPrecision; 
+   BYTE lfClipPrecision; 
+   BYTE lfQuality; 
+   BYTE lfPitchAndFamily; 
+   TCHAR lfFaceName[LF_FACESIZE]; 
+} LOGFONT; 
+\end{verbatim}
+\end{scriptsize}
+
+powinna być przetłumaczona tak, aby zachować kolejność ułożenia pól oraz ograniczoną długość napisu.
+
+\begin{scriptsize}
+\begin{verbatim}
+[StructLayout(LayoutKind.Sequential)]
+public class LOGFONT 
+{ 
+    public const int LF_FACESIZE = 32;
+    public int lfHeight; 
+    public int lfWidth; 
+    public int lfEscapement; 
+    public int lfOrientation; 
+    public int lfWeight; 
+    public byte lfItalic; 
+    public byte lfUnderline; 
+    public byte lfStrikeOut; 
+    public byte lfCharSet; 
+    public byte lfOutPrecision; 
+    public byte lfClipPrecision; 
+    public byte lfQuality; 
+    public byte lfPitchAndFamily;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=LF_FACESIZE)]
+    public string lfFaceName; 
+}
+\end{verbatim}
+\end{scriptsize}
+
+Czasami nawet konieczne jest dokładne wyznaczenie położenia wszystkich pól
+struktury.
+
+\begin{scriptsize}
+\begin{verbatim}
+[StructLayout(LayoutKind.Explicit, Size=16, CharSet=CharSet.Ansi)]
+public class MySystemTime 
+{
+   [FieldOffset(0)]public ushort wYear; 
+   [FieldOffset(2)]public ushort wMonth;
+   [FieldOffset(4)]public ushort wDayOfWeek; 
+   [FieldOffset(6)]public ushort wDay; 
+   [FieldOffset(8)]public ushort wHour; 
+   [FieldOffset(10)]public ushort wMinute; 
+   [FieldOffset(12)]public ushort wSecond; 
+   [FieldOffset(14)]public ushort wMilliseconds; 
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Funkcje zwrotne}
+
+Funkcje Win32Api, które zwracają więcej niż jeden element, najczęściej korzystają z mechanizmu funkcji
+zwrotnych. Programista przekazuje wskaźnik na funkcję zwrotną, która jest wywoływana dla każdego elementu
+na liście wyników (tak działa na przykład {\bf EnumWindows}, czy {\bf EnumDesktops}).
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL EnumDesktops {
+  HWINSTA hwinsta,  
+  DESKTOPENUMPROC lpEnumFunc,
+  LPARAM lParam
+}
+\end{verbatim}
+\end{scriptsize}
+
+Parametr typu {\tt HWINSTA} można przekazać jako {\tt IntPtr}, zaś {\tt LPARAM} jako {\tt int}.
+Wskaźnik na funkcję
+
+\begin{scriptsize}
+\begin{verbatim}
+BOOL CALLBACK EnumDesktopProc (
+  LPTSTR lpszDesktop, LPARAM lParam
+)
+\end{verbatim}
+\end{scriptsize}
+
+należy zamienić na delegata
+
+\begin{scriptsize}
+\begin{verbatim}
+delegate bool EnumDesktopProc(
+  [MarshalAs(UnmanagedType.LPTStr)]
+  string desktopName, int lParam
+)
+\end{verbatim}
+\end{scriptsize}
+
+Definicja funkcji {\bf EnumDesktops} będzie więc wyglądać tak:
+
+\begin{scriptsize}
+\begin{verbatim}
+[DllImport("user32.dll"), CharSet = CharSet.Auto)]
+static extern bool EnumDesktops (
+  IntPtr windowStation,
+  EnumDesktopProc callback,
+  int lParam
+)
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Odśmiecacz}
+
+Mechanizm odśmiecania funkcjonuje samodzielnie, bez kontroli programisty. W szczególnych
+sytuacjach odśmiecanie może być wymuszone przez wywołanie metody obiektu odśmiecacza:
+
+\begin{scriptsize}
+\begin{verbatim}
+GC.Collect();
+\end{verbatim}
+\end{scriptsize}
+
+Należy pamiętać o tym, że destruktory obiektów są wykonywane w osobnym wątku, dlatego zakończenie
+metody {\bf Collect} nie oznacza, że wszystkie destruktory są już zakończone. Można oczywiście wymusić
+oczekiwanie na zakończenie się wszystkich czekających destruktorów:
+
+\begin{scriptsize}
+\begin{verbatim}
+GC.Collect();
+GC.WaitForPendingFinalizers();
+\end{verbatim}
+\end{scriptsize}
+
+Działanie odśmiecacza jest dość proste. W momencie, w którym aplikacji brakuje pamięci, odśmiecacz
+rozpoczyna przeglądanie wszystkich referencji od zmiennych statycznych, globalnych i lokalnych, oznaczając
+kolejne obiekty jako używane. Wszystkie obiekty, które nie zostaną oznaczone, mogą zostać usunięte, bowiem
+żaden aktualnie aktywny obiekt z nich nie korzysta.
+
+Taki sposób postępowania, mimo że poprawny, byłby dość powolny. Dlatego w rzeczywistości wykorzystuje się
+dodatkowo pojęcie tzw. {\em generacji}. Chodzi o to, że obiekt tuż po wykreowaniu 
+należy do zerowej generacji obiektów, czyli obiektów "najmłodszych". Po "przeżyciu" odśmiecania,
+obiektom inkrementuje się numery generacji. Kiedy odśmiecacz zabiera się za przeglądanie obiektów,
+zaczyna od obiektów najmłodszych, dopiero jeśli okaże się, że pamięci nadal jest zbyt mało, usuwa obiekty
+coraz starsze.
+
+Idea ta ma proste uzasadnienie - obiektami najmłodszymi najcześciej będą na przykład zmienne lokalne funkcji
+czy bloków kodu. Te zmienne powinny być usuwane najszybciej. Zmienne statyczne, kilkukrotnie wykorzystane 
+w czasie działania programu, będą usuwane najpóźniej.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+
+public class CObiekt 
+{
+    private string name;
+    public  CObiekt(string name) { this.name = name; }
+    override public string ToString() { return name; }
+}
+
+namespace Example
+{
+  public class CMainForm
+  {  
+    const int IL = 3;
+ 
+    public static void Main()
+    {    
+      Console.WriteLine( "Maksymalna generacja odsmiecacza " + GC.MaxGeneration );
+      
+      CObiekt[] t = new CObiekt[IL];
+
+      Console.WriteLine( "Tworzenie obiektow." );
+      for ( int i=0; i<IL; i++ )
+      {     
+        t[i] = new CObiekt( "obiekt " + i );
+        Console.WriteLine( "{0}, generacja {1}", t[i], GC.GetGeneration( t[i] ) );
+      } 
+
+      // spróbuj usuwać nieużywane obiekty
+      GC.Collect();
+      GC.WaitForPendingFinalizers(); 
+
+      Console.WriteLine( "Usuwanie obiektow." );
+      for ( int i=0; i<IL; i++ )
+      {
+        Console.WriteLine( "{0}, generacja {1}", t[i], GC.GetGeneration( t[i] ) );
+        t[i] = null;
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers(); 
+      }       
+    }
+  }
+}
+
+C:\Example>example
+Maksymalna generacja odsmiecacza 2
+Tworzenie obiektow.
+obiekt 0, generacja 0
+obiekt 1, generacja 0
+obiekt 2, generacja 0
+Usuwanie obiektow.
+obiekt 0, generacja 1
+obiekt 1, generacja 2
+obiekt 2, generacja 2
+\end{verbatim}
+\end{scriptsize}

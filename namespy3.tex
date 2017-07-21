@@ -1,0 +1,479 @@
+﻿\subsection{Dynamiczne tworzenie kodu}
+
+Jedną z najciekawszych możliwości biblioteki .NET jest dynamiczne tworzenie kodu w czasie działania
+aplikacji. Programista może zażyczyć sobie utworzenia instancji obiektu kompilatora, skompilować
+fragment kodu na dysk lub do pamięci a nawet dynamicznie dołączyć taki kod do swojej aplikacji.
+
+Najpierw zobaczmy w jaki sposób utworzyć dynamicznie obiekt kompilatora, skompilować kod
+do postaci wykonywalnej, a następnie uruchomić skompilowany kod jako nowy proces w systemie.
+Chcielibyśmy ponadto, aby tak utworzony obiekt kompilatora przechwytywał i raportował błędy kompilacji.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+
+using Microsoft.CSharp;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      string sFileName;
+      string sOutFileName;
+
+      Console.Write( "Podaj nazwe pliku do skompilowania: " );
+      sFileName    = Console.ReadLine();
+      sOutFileName = 
+        Path.GetFileNameWithoutExtension( sFileName ) + ".exe";
+
+      if ( File.Exists( sFileName ) )
+      {
+        CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+        ICodeCompiler icc = codeProvider.CreateCompiler();
+
+        CompilerParameters parameters = new CompilerParameters();
+        parameters.GenerateExecutable = true;
+        parameters.OutputAssembly     = sOutFileName;
+     
+        CompilerResults results = icc.CompileAssemblyFromFile( parameters, sFileName );
+      
+        if (results.Errors.Count > 0)
+        {
+          foreach(CompilerError CompErr in results.Errors)
+          {
+            Console.WriteLine( "Linia: " + CompErr.Line + 
+                               ", Numer: " + CompErr.ErrorNumber );
+            Console.WriteLine( CompErr.ErrorText );
+          }
+        }
+        else
+          Process.Start( sOutFileName );            
+      }
+    }
+  }
+}
+
+C:\Example>example.exe
+Podaj nazwe pliku do skompilowania: test.cs
+Linia: 5, Numer: CS1514
+{ expected
+\end{verbatim}
+\end{scriptsize}
+
+Dynamiczne kompilowanie kodu w sposób pokazany w powyższym przykładzie ma jednak kilka wad:
+\begin{itemize}
+\item podczas kompilacji tworzony jest plik wykonywalny ze skompilowanym kodem
+\item kompilowany kod musi być w pełni samodzielny, w szczególności musi zawierać funkcję {\tt Main}
+\item skompilowany proces podczas uruchamiania tworzy nowe okno konsoli
+\end{itemize}
+
+Aby poradzić sobie z tymi problemami, po pierwsze zażyczymy sobie tworzenia kodu do pamięci zamiast
+na dysk. Po drugie, skorzystamy z mechanizmu refleksji, dzięki któremu będziemy mogli obejrzeć
+składniki skompilowanego do pamięci kodu. Po trzecie, wykorzystamy mechanizm pozwalający na tworzenie
+delegatów z obiektów typu {\tt MethodInfo}, dzięki czemu będziemy mogli wybrać z kompilowanego kodu 
+tylko te metody, które są interesujące.
+
+Przygotujmy najpierw testowy plik z przykładowymi funkcjami:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* 
+   test.cs 
+   plik z przykładowymi funkcjami, który będzie dynamicznie kompilowany 
+*/
+using System;
+
+namespace NSpace
+{
+  public class CMain
+  {
+    public static int A( int n )
+    {
+      return n+n; 
+    }
+
+    public static int B( int n )
+    {
+      return n*n; 
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+A oto zmodyfikowany przykład dynamicznego tworzenia kodu:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+using System.Reflection;
+
+using Microsoft.CSharp;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public delegate int DF( int n );
+    public static DF DummyDF = new DF( FDummy );
+    public static int FDummy( int n )
+    {
+      return 0;
+    }
+
+    public static void Main(string[] args)
+    {
+      string sFileName;
+      string sOutFileName;
+
+      Console.Write( "Podaj nazwe pliku do skompilowania: " );
+      sFileName    = Console.ReadLine();
+      sOutFileName = 
+        Path.GetFileNameWithoutExtension( sFileName ) + ".exe";
+
+      if ( File.Exists( sFileName ) )
+      {
+        CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+        ICodeCompiler icc = codeProvider.CreateCompiler();
+
+        CompilerParameters parameters = new CompilerParameters();
+        parameters.GenerateExecutable = false;
+        parameters.OutputAssembly     = sOutFileName;
+     
+        CompilerResults results = 
+          icc.CompileAssemblyFromFile( parameters, sFileName );
+      
+        if (results.Errors.Count > 0)
+        {
+          foreach(CompilerError CompErr in results.Errors)
+          {
+            Console.WriteLine( "Linia: " + CompErr.Line + 
+                               ", Numer: " + CompErr.ErrorNumber );
+            Console.WriteLine( CompErr.ErrorText );
+          }
+        }
+        else
+        {
+          try
+          {
+            Assembly  assembly = results.CompiledAssembly;
+
+            Console.Write( "Podaj nazwę typu: " );
+            Type t = assembly.GetType( Console.ReadLine() );
+          
+            Console.Write( "Podaj nazwę funkcji o prototypie int F(int): " );
+            MethodInfo me = t.GetMethod( Console.ReadLine() );
+
+            DF df = (DF)DF.CreateDelegate( DummyDF.GetType(), me  );
+            Console.Write( "Podaj wartość parametru (int): " );
+
+            int result = df( int.Parse( Console.ReadLine() ) ); 
+            Console.WriteLine( result ); 
+           }
+           catch ( Exception ex )
+           {
+             Console.WriteLine( ex.Message );
+           } 
+        }
+      }
+    }
+  }
+}
+
+C:\Example>example.exe
+Podaj nazwe pliku do skompilowania: test.cs
+Podaj nazwę typu: NSpace.CMain
+Podaj nazwę funkcji o prototypie int F(int): A
+Podaj wartość parametru (int): 24
+48
+
+C:\Example>example.exe
+Podaj nazwe pliku do skompilowania: test.cs
+Podaj nazwę typu: NSpace.CMain
+Podaj nazwę funkcji o prototypie int F(int): B
+Podaj wartość parametru (int): 25
+625
+\end{verbatim}
+\end{scriptsize}
+
+Cała siła tego kodu opiera się na linii
+
+\begin{scriptsize}
+\begin{verbatim}
+DF df = (DF)DF.CreateDelegate( DummyDF.GetType(), me );
+\end{verbatim}
+\end{scriptsize}
+
+Tworzony jest tutaj delegat typu {\em DF} za pomocą statycznej funkcji {\em CreateDelegate}, która w tej
+(jednej z 4) wersji spodziewa się parametru określającego typ tworzonego delegata (tu: domyślnego
+delegata typu {\tt DF} utworzonego w kodzie) oraz informacji o metodzie pobranej przez mechanizm refleksji.
+
+Bardzo prosto napisać funkcję, która będzie mogła ewaluować wyrażenie dowolnego typu:
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+using Microsoft.CSharp;
+using System.Text;
+using System.Reflection;
+
+namespace Example
+{
+  public class Evaluator
+  {
+    public static object Evaluate( Type type, string expression )
+    {
+      ICodeCompiler comp = (new CSharpCodeProvider().CreateCompiler());
+      CompilerParameters cp = new CompilerParameters();
+      cp.ReferencedAssemblies.Add("system.dll");
+      cp.ReferencedAssemblies.Add("system.data.dll");
+      cp.ReferencedAssemblies.Add("system.xml.dll");
+      cp.GenerateExecutable = false;
+      cp.GenerateInMemory = true;
+
+      StringBuilder code = new StringBuilder();
+      code.Append("using System; \n");
+      code.Append("using System.Data; \n");
+      code.Append("using System.Data.SqlClient; \n");
+      code.Append("using System.Data.OleDb; \n");
+      code.Append("using System.Xml; \n");
+      code.Append("namespace _Evaluator { \n");
+      code.Append("  public class _Evaluator { \n");
+      code.AppendFormat("    public {0} Foo() ", type.Name );
+      code.Append("{ ");
+      code.AppendFormat("      return ({0}); ", expression);
+      code.Append("}\n");
+      code.Append("} }");
+
+      CompilerResults cr = 
+        comp.CompileAssemblyFromSource(cp, code.ToString());
+
+      if (cr.Errors.HasErrors)
+      {
+        StringBuilder error = new StringBuilder();
+        error.Append("Error Compiling Expression: ");
+        foreach (CompilerError err in cr.Errors)
+        {
+          error.AppendFormat("{0}\n", err.ErrorText);
+        }
+        throw new Exception("Error Compiling Expression: " + 
+	                     error.ToString());
+      }
+      Assembly    a = cr.CompiledAssembly;
+      object      c = a.CreateInstance("_Evaluator._Evaluator");
+      MethodInfo mi = c.GetType().GetMethod("Foo");
+      return mi.Invoke( c, null );
+    }
+  }
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      Console.Write( "Wpisz wyrażenie arytmetyczne: " );
+      Console.WriteLine( (int)Evaluator.Evaluate( typeof(int), 
+                         Console.ReadLine() ) );
+    }
+  }
+}
+
+C:\Example>example
+Wpisz wyrażenie arytmetyczne: (8*(4+6))-12
+68
+
+C:\Example>example
+Wpisz wyrażenie arytmetyczne: 5+(
+
+Unhandled Exception: System.Exception: Error Compiling Expression: Error Compili
+ng Expression: Invalid expression term ')'
+) expected
+
+   at Example.Evaluator.Evaluate(Type type, String expression)
+   at Example.CMain.Main()
+\end{verbatim}
+\end{scriptsize}
+
+Zastosowania takiej metody tworzenia kodu mogą być bardzo szerokie. Można na przykład wyposażyć aplikację
+w moduł skryptowy, który pozwoli użytkownikowi podkładać własne funkcje w miejsce dostarczanych z aplikacją.
+Można zaprojektować całkowicie własny język skryptowy, dopisać prosty kompilator między
+tym językiem a C\#, następnie kompilować kod w języku skryptowym najpierw do C\#, a
+kod C\# dynamicznie dołączać do własnej aplikacji w czasie jej działania.
+
+Można również wyobrazić sobie, że pewne ważne fragmenty aplikacji dostarczone są w postaci zaszyfrowanego kodu
+źródłowego, do którego kod odszyfrowujący zna tylko użytkownik. Kod taki mógłby być odszyfrowywany i kompilowany
+w czasie działania aplikacji, zaś użytkownik miałby pewność, że w przypadku kradzieży aplikacja byłaby
+dla ewentualnego złodzieja bezużyteczna, gdyby nie znał hasła odszyfrowującego.
+
+\subsection{Procesy, wątki}
+
+\subsubsection{Procesy}
+
+Dzięki bibliotece {\em System.Diagnostics} programista może kontrolować procesy działające w systemie.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Diagnostics;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      Process[] pt = Process.GetProcesses();
+      foreach ( Process p in pt )
+      {
+        Console.WriteLine( p.ProcessName.ToString() ); 
+        Console.WriteLine( "\t"+p.PriorityClass.ToString() );
+        Console.WriteLine( "\t"+p.MainModule.ModuleName );
+        Console.WriteLine( "\t"+p.MainModule.ModuleMemorySize );
+      }
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Procesy można nie tylko przeglądać, ale również tworzyć, zabijać, czekać na ich zakończenie oraz
+korzystać z możliwości powłoki. Poniższy przykład jest C\#-owym odpowiednikiem przykładu ze strony 
+\pageref{powlokaSystemu}.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Diagnostics;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      Process p = new Process();
+
+      p.StartInfo.UseShellExecute = true;
+      p.StartInfo.Verb            = "print";
+      p.StartInfo.FileName        = "plik.doc";
+ 
+      p.Start();
+      p.WaitForExit();
+      p.Dispose();
+      
+      Console.WriteLine( "zakończono drukowanie" );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Wątki}
+
+Biblioteka {\em System.Threading} udostępnia funkcje do tworzenia i synchronizacji wątków. Przekazywanie 
+parametrów do wątków możliwe jest dzięki opakowywaniu ich w pomocnicze klasy:
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace Example
+{
+  public class CMyThread
+  {
+    string nazwa;
+    int    k; 
+
+    public void ThreadFunc()
+    {
+      for ( int i=0; i<k; i++ )
+      {
+        Console.WriteLine( nazwa );
+        Thread.Sleep( 1 );
+      }
+    }
+
+    public CMyThread( string nazwa, int k )
+    {
+      this.nazwa = nazwa;
+      this.k     = k;
+    }
+  }
+
+
+  public class CMain
+  {   
+    public static void Main()
+    {
+       string[] n = { "Jurek", "Ogórek", "Kiełbasa", "Sznurek" };
+       int[]    m = { 4, 5, 2, 7 };
+       
+       for ( int i=0; i<n.Length; i++ )
+       {
+          CMyThread mt = new CMyThread( n[i], m[i] );
+          Thread    t  = new Thread( new ThreadStart( mt.ThreadFunc ) );
+          t.Start();
+       }
+    }
+  }
+}
+
+C:\Example>example
+Ogórek
+Kiełbasa
+Kiełbasa
+Ogórek
+Ogórek
+Sznurek
+Jurek
+Sznurek
+Ogórek
+Jurek
+Ogórek
+Sznurek
+Sznurek
+Sznurek
+Jurek
+Sznurek
+Jurek
+Sznurek
+\end{verbatim}
+\end{scriptsize}
+
+Najprostszy wariant synchronizacji wątków możliwy jest dzięki słowu kluczowemu C\# {\tt lock}. 
+Objęcie jakiejś zmiennej tą klauzulą powoduje zablokowanie dostępu do tej zmiennej pozostałym wątkom na
+tak długo, aż bieżący wątek opuści blok {\tt lock}, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+JakisObiekt o; 
+...
+lock ( o )
+{
+  ...
+}
+\end{verbatim}
+\end{scriptsize}
+
+Do synchronizacji wątków można również wykorzystać m.in.:
+\begin{itemize}
+\item {\tt AutoResetEvent}
+\item {\tt ManualResetEvent}
+\item {\tt Monitor}
+\item {\tt Mutex}
+\end{itemize}
+

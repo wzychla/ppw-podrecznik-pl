@@ -1,0 +1,2 @@
+pdflatex wyklad
+pdflatex wyklad

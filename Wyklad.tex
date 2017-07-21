@@ -1,0 +1,31 @@
+\documentclass [11pt,a4paper]{book} 
+\usepackage{amsmath} 
+\usepackage{graphicx}
+\usepackage{polski}
+\usepackage{color}
+\usepackage[utf8]{inputenc}
+% https://tex.stackexchange.com/a/366029/114062 ignore BOM byte marks in consecutive files
+\DeclareUnicodeCharacter{FEFF}{}
+\usepackage{ppwstyl}
+
+\begin{document}
+
+\pagestyle{headings}
+
+\include{title}
+\newpage
+\tableofcontents
+
+% definicje pomocnicze
+\input{commands}
+
+% treść
+\input{planw}
+\input{wstep}
+\input{win32api}
+\input{net}
+
+\input{biblio}
+\input{appendix}
+
+\end{document}

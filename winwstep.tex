@@ -1,0 +1,64 @@
+﻿\section{Fundamentalne idee Win32API}
+
+Interfejs programowania Win32API można podzielić na spójne podzbiory funkcji przeznaczonych
+do podobnych celów. Dokumentacja systemu mówi o 6 kategoriach:
+
+\begin{description}
+\item[Usługi podstawowe] Ta grupa funkcji pozwala aplikacjom na korzystanie z takich możliwości
+systemu operacyjnego jak zarządzanie pamięcią, obsługa systemu plików i urządzeń zewnętrznych,
+zarządzanie procesami i wątkami.
+\item[Biblioteka Common Controls]Ta część Win32API pozwala obsługiwać zachowanie typowych
+okien potomnych, takich jak proste pola edycji i comboboxy czy skomplikowane ListView i TreeView.
+\item[GDI]GDI ({\em Graphics Device Interface}) dostarcza funkcji i struktur danych, które
+mogą być wykorzystane do tworzenia efektów graficznych na urządzeniach wyjściowych takich jak
+monitory czy drukarki. GDI pozwala rysować kształty takie jak linie, krzywe oraz figury zamknięte,
+pozwala także na rysowanie tekstu.
+\item[Usługi sieciowe]Za pomocą tej grupy funkcji można obsługiwać warstwę komunikacji sieciowej, na
+przykład tworzyć współdzielone zasoby sieciowe czy diagnozować stan konfiguracji sieciowej.
+\item[Interfejs użytkownika]Ta grupa funkcji dostarcza środków do tworzenia i zarządzania interfejsem
+użytkownika: tworzenia okien i interakcji z użytkownikiem. Zachowanie i wygląd tworzonych okien jest 
+uzależnione od właściwości tzw.{\em klas okien}. 
+\item[Powłoka systemu]To funkcje pozwalające aplikacjom integrować się z powłoką systemu, na przykład
+uruchomić dany dokument ze skojarzoną z nim aplikacją, dowiadywać się o ikony skojarzone z plikami i
+folderami czy odczytywać położenie ważnych folderów systemowych.
+\end{description}
+
+Programowanie systemu Windows wymaga przyswojenia sobie trzech istotnych elementów.
+
+Po pierwsze - wszystkie elementy interfejsu użytkownika, pola tekstowe, przyciski,
+comboboxy, radiobuttony\footnote{'Angielskawe' brzmienie tych terminów może być
+trochę niezręczne, jednak ich polskie odpowiedniki bywają przerażające. Pozostaniemy
+więc przy terminach powszechnych wśród programistów.}, 
+wszystkie one z punktu widzenia systemu są oknami. Jak zobaczymy,
+Windows traktuje wszystkie te elementy w sposób jednorodny, przy czym niektóre okna mogą być tzw.
+{\em oknami potomnymi} innych okien. Windows traktuje okna potomne w sposób szczególny, zawsze
+umieszczając je w obszarze okna macierzystego oraz automatycznie przesuwając je, gdy użytkownik
+przesuwa okno macierzyste\footnote{To dość ważne. Gdyby programista musiał dbać o przesuwanie się
+okien potomnych za przesuwającym się oknem macierzystym, byłoby to niesłychanie niewygodne.}.
+
+Po drugie - z perspektywy programisty wszystkie okna zachowują się prawie dokładnie tak samo
+jak z perspektywy użytkownika. Użytkownik, za pomocą myszy, klawiatury lub innego wskaźnika, wykonuje
+różne operacje na widocznych na pulpicie oknach. Każde zdarzenie w systemie, bez względu na źródło jego
+pochodzenia, powoduje powstanie tzw. {komunikatu}, czyli pewnej informacji mającej swój cel i niosącej
+jakąś określoną informację. Programista w kodzie swojego programu tak naprawdę 
+zajmuje się obsługiwaniem komunikatów, które powstają w systemie przez interakcję 
+użytkownika\footnote{I nie tylko - komunikaty mogą mieć swoje źródło w samym systemie. 
+Komunikaty wysyłają do siebie na przykład okna i okna potomne, źródłem komunikatów mogą być zegary itd.}.
+
+Po trzecie - do identyfikacji obiektów w systemie, takich jak okna, obiekty GDI, pliki, biblioteki, 
+wątki itd., Windows korzysta z tzw. {\em uchwytów} (czyli 32-bitowych identyfikatorów). Mnóstwo
+funkcji Win32API przyjmuje jako jeden z parametrów uchwyt (czyli identyfikator) obiektu systemowego, przez
+co wykonanie takiej funkcji odnosi się do wskazanego przez ten uchwyt obiektu. W języku C różne uchwyty
+zostały różnie nazwane (HWND, HDC, HPEN, HBRUSH, HICON, HANDLE itd.) choć tak naprawdę są one najczęściej
+wskaźnikami na miejsce w pamięci gdzie znajduje się pełny opis danego obiektu. Z perspektywy programisty, są
+one, jak już powiedziano, unikatowymi identyfikatorami obiektów systemowych. 
+
+Dokładne poznanie i zrozumienie trzech wymienionych wyżej elementów stanowi istotę poznania i
+zrozumienia Win32API. Idee które leżą u podstaw wyżej wymienionych elementów są jednakowe
+we wszystkich wersjach systemu Windows i z dużą dozą prawdopodobieństwa można powiedzieć, że nie 
+ulegną zasadnicznym zmianom w kolejnych wersjach systemu. Programista może oczywiście znać mniej
+lub więcej funkcji Win32API, umieć posługiwać się mniejszą lub większą ilością komunikatów, znać
+mniej lub więcej typów uchwytów, jednak bez zrozumienia zasad, wedle jakich wszystkie te elementy
+składają się na funkcjonowanie systemu operacyjnego Windows, programista pisząc program 
+będzie często bezradny.
+

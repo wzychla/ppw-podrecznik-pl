@@ -1,0 +1,518 @@
+﻿\section{Komunikacja między procesami}
+\label{apiKomunikacja}
+
+Zajmiemy się dokładniej komunikacją za pomocą tzw. gniazd. 
+Sama idea gniazd została opracowana na Uniwersytecie Kalifornijskim w Berkley w celu 
+zapewnienia możliwości komunikacyjnych w systemie Unix. Opracowany tam interfejs programowania 
+nosi nazwę "Berkley socket interface" i jest stopniowo z mniejszymi lub większymi 
+zmianami przejmowany przez kolejne systemy operacyjne. 
+
+Największa zaleta jaką daje korzystanie z gniazd to w miarę prosty i przejrzysty interfejs 
+niezależny od warstwy komunikacyjnej (oczywiście stosunkowo najmniej wygodnie korzysta 
+się z interfejsu gniazd w czystym C, w Javie czy C\# jest jeszcze prościej). 
+
+\subsection{Charakterystyka protokołów sieciowych}
+
+Skoro gniazda są tylko interfejsem programowania służącym do oprogramowania transmisji 
+sieciowych, to zajmijmy się przez chwilę samymi protokołami\footnote{Mowa na razie
+o protokołach {\em fizycznych}, czyli sposobach transmisji danych między różnymi
+maszynami w sieci. Jeśli przesyłane dane są w jakiś sposób interpretowane, to mamy
+do czynienia z protokołem {\em logicznym}.} i ich charakterystykami. 
+
+Bez wchodzenia w szczegóły, możemy podzielić protokoły na 
+\begin{itemize}
+  \item oparte o wiadomości (ang. message-oriented). Takim mianem określamy protokoły, które 
+        przesyłają dane w paczkach o skończonej pojemności. Nadawca wielokrotnie 
+	wysyła małe paczki informacji, odbiorca zaś musi wielokrotnie te paczki odczytywać. 
+	Wyobraźmy sobie, że nadawca wysyła 10 paczek po 64 znaki. Mimo że w warstwie 
+	transmisji protokół może zdecydować o połączeniu tych wiadomości w jedną paczkę, 
+	po dotarciu do odbiorcy wiadomości mogą być rozdzielone i przekazane w takich samych 
+	paczkach, w jakich były nadawane (choć niekoniecznie). 
+  \item strumieniowe (ang. stream-based). Tutaj proces nadawania trwa nieustannie, zaś odbiorca 
+        w danej chwili dostaje tylko informacji, ile w danej chwili do niego dotarło. 
+\end{itemize}
+
+Inna ważna linia dzieli protokoły na 
+\begin{itemize}
+  \item wykorzystujące bezpośrednie połączenie (ang. connection-oriented). 
+        Te protokoły przed wysłaniem czy odebraniem jakichkolwiek informacji 
+	nawiązują bezpośrednie połączenie między nadawcą i odbiorcą. Chodzi o 
+	zagwarantowanie tego, że oba zainteresowane podmioty istnieją i są 
+	połączone ścieżką gotową do transmisji danych. 
+  \item bezpołączeniowe (ang. connectionless). Nadawca nie ma tutaj nawet gwarancji, 
+        że odbiorca istnieje. Trochę przypomina to usługi poczty - nadawca adresuje 
+	wiadomość i wysyła ją, nie wie jednak czy odbiorca na tę wiadomość czeka ani 
+	czy wiadomość do odbiorcy dotrze. 
+\end{itemize}
+
+Każdy protokół może charakteryzować się posiadaniem lub brakiem następujących cech:
+\begin{itemize}
+  \item wiarygodność (ang. reliability). Wiarygodny protokół musi zapewniać dotarcie każdego 
+        bajtu informacji od nadawcy do odbiorcy, 
+  \item zachowywanie porządku (ang. ordering). Protokół który zachowuje porządek, dba o to 
+        by informacje docierały do odbiorcy w takiej samej kolejności w jakiej były nadawane, 
+  \item łagodne zakończenie (ang. graceful close). Kiedy któraś ze stron zamierza zamknąć 
+        połączenie, protokół może dać obu stronom szansę na doczytanie informacji, które są jeszcze w drodze. 
+  \item otwarta transmisja (ang. broadcast data). Protokół może transmitować dane tak, aby 
+        docierały do wszystkich maszyn w sieci. Wada takich protokołów polega na tym, że 
+	wszystkie maszyny w sieci muszą tracić czas na analizę przesyłanych informacji, mimo 
+	że niekoniecznie muszą być nimi zainteresowane. 
+  \item niezależność od warstwy komunikacyjnej (ang. routability). Transmisja w takich protokołach 
+        nie zależy od tego ile i jakie maszyny stoją pomiędzy nadawcą i odbiorcą. 
+	Możliwe jest nawet, by kolejne informacje docierały do odbiorcy inną drogą. 
+\end{itemize}
+
+\subsection{Podstawy biblioteki Winsock}
+
+Gniazda zaadaptowano do systemu Windows pod nazwą Winsock. 
+Za pomocą tej biblioteki można tworzyć aplikacje korzystające z wielu protokołów sieciowych. 
+Dzięki prostemu interfejsowi, z perspektywy programisty korzystanie z różnych 
+protokołów wygląda niemal identycznie. 
+
+Przy nawiązywaniu połączeń jedna strona jest "serwerem", który oczekuje połączenia, 
+druga strona jest "klientem", który nawiązuje połączenie z "serwerem". Protokół fizyczny określa
+sposób transmisji danych między klientem a serwerem (sposób w jaki dane
+są przesyłane). Protokół fizyczny to jednak nie wszystko - gwarancja, że dane zostały przesłane nie
+oznacza, że przekaz został zrozumiany. Wyobraźmy sobie na przykład, że klient i serwer 
+komunikują się za pomocą protokołu fizycznego
+TCP/IP i że klient wysłał do serwera strumień danych {\em "QWERTY"}. Co serwer ma zrobić z takim przekazem?
+Otóż za interpretację przesyłanych danych odpowiadaja coś co moglibyśmy nazwać protokołem logicznym, 
+czyli pewien umówiony zestaw komunikatów rozumianych przez obie strony transmisji. Kilka powszechnie
+znanych przykładów protokołów logicznych to HTTP, FTP, TELNET.
+
+Jeden fizyczny komputer może pełnić rolę serwera sieciowego dla wielu różnych protokołów logicznych.
+W przypadku protokołu TCP/IP istnieje możliwość zdefiniowania aż 65535 rozłącznych serwerów wirtualnych,
+oczekujących na połączenia z klientami. Numer takiego wirtualnego serwera zwykle nazywa się 
+{\em portem}\footnote{Słowo {\em port} określa tu więc tylko numer za pomocą którego klienci mogą rozróżniać 
+wirtualne serwery oczekujące na połączenia na tej samej maszynie. Nie ma to nic wspólnego z żadnymi
+fizycznymi portami komputera.}.
+
+Aby uporządkować możliwy bałagan jaki daje dowolność wyboru portu dla serwera nasłuchującego połączeń, usługi
+typowe mają ściśle przyporządkowane numery portów. Na przykład łącząc się z jakąś maszyną na
+port o numerze 80 możemy być niemal pewni, że skomunikujemy się z serwerem HTTP, zaś na porcie
+21 oczekuje TELNET, a na porcie 25 FTP\footnote{Jest to jednak tylko umowa. Nie ma przeszkód w uruchomieniu
+serwera HTTP na porcie powiedzmy 3333. Przeglądarki Internetowe domyślnie łączą się właśnie do portu
+80 maszyny docelowej, jednak istnieje możliwość wymuszenia innego numeru portu, na przykład
+{\em http://www.qwe.com:3333}.}. Zobaczmy więc najpierw jak przeglądnąć porty lokalnej maszyny
+w poszukiwaniu serwerów oczekujących na połączenia.
+
+\begin{scriptsize}
+\begin{verbatim}
+#include <stdio.h>
+#include <winsock2.h>
+
+int ssocket,new_socket;
+WSADATA wsd;
+struct  sockaddr_in addr;
+int     sourceport;
+
+int main()
+{
+ printf( "TCP/IP port status:\n" );
+
+ if (WSAStartup(MAKEWORD(2,2), &wsd) != 0)
+ {
+   printf("Błąd ładowania Winsock 2.2!\n");
+   return 1;
+ }
+
+ for ( sourceport=0; sourceport<65535; sourceport++ )
+ {
+  ssocket=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP); 
+  addr.sin_family=AF_INET; 
+  addr.sin_addr.s_addr=htonl(INADDR_ANY); 
+  addr.sin_port=htons( (unsigned short)sourceport); 
+  
+  if (bind(ssocket,(struct sockaddr*)&addr,sizeof(addr)))
+  {
+   printf("Otwarty port %d\n", sourceport);
+  } 
+  shutdown(ssocket, SD_BOTH); 
+  closesocket(ssocket);
+ }
+
+ return 0;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli próba połączenia gniazda z adresem o ustalonym porcie kończy się niepowodzeniem, to 
+przyjmujemy, że port jest zajęty\footnote{Tak naprawdę mogą być inne przyczyny błędu
+funkcji bind(), jednak możemy je pominąć.}, jednak nie ma możliwości określenia jakiego
+protokołu logicznego spodziewa się serwer nasłuchujący na określonym porcie. Jak zobaczymy
+bowiem w poniższym przykładzie, serwer może w ogóle nie posługiwać się żadnym protokołem logicznym.
+
+Kod programu serwera: 
+
+\begin{scriptsize}
+\begin{verbatim}
+// prosty moduł serwera
+// komunikacji za pomocą Winsock
+// użycie: server.exe
+
+#include <winsock2.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DEFAULT_PORT 5000
+#define DEFAULT_BUFFER 4096
+
+// tylko Visual C++
+#pragma comment(lib, "ws2_32.lib")
+
+// funkcja: wątek do komunikacji z klientem
+DWORD WINAPI ClientThread(LPVOID lpParam)
+{
+    SOCKET sock = (SOCKET)lpParam;
+    char szBuf[DEFAULT_BUFFER];
+    int ret,
+        nLeft,
+        idx;
+
+// serwer będzie oczekiwał na informacje od klienta
+while(1)
+{
+    // najpierw odbierz dane 
+    ret = recv(sock, szBuf, DEFAULT_BUFFER, 0);
+    if (ret == 0)
+        break; 
+    else if (ret == SOCKET_ERROR)
+    {
+        printf("błąd funkcji recv(): %d\n", WSAGetLastError());
+        break; 
+    } 
+
+    szBuf[ret] = '\0';
+    printf("RECV: '%s'\n", szBuf);
+
+    // następnie odeślij te dane, poporcjuj jeśli trzeba
+    // (niestety send() może nie wysłać wszystkiego)
+    nLeft = ret;
+    idx = 0;
+    while(nLeft > 0)
+    {
+        ret = send(sock, &szBuf[idx], nLeft, 0);
+        if (ret == 0)
+            break;
+        else if (ret == SOCKET_ERROR)
+        {
+            printf("błąd funkcji send(): %d\n", WSAGetLastError());
+            break; 
+        } 
+        nLeft -= ret;
+        idx += ret;
+    }
+} 
+return 0; 
+}
+
+int main(int argc, char *argv[])
+{
+    WSADATA wsd;
+    SOCKET sListen,
+    sClient;
+    int iAddrSize;
+    HANDLE hThread;
+    DWORD dwThreadID;
+    struct sockaddr_in local, client; 
+    struct hostent *host = NULL;
+
+// inicjuj Winsock 2.2 
+if (WSAStartup(MAKEWORD(2,2), &wsd) != 0)
+{
+    printf("Błąd ładowania Winsock 2.2!\n");
+    return 1;
+}
+
+// twórz gniazdo do nasłuchu połączeń klientów
+sListen = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+if (sListen == SOCKET_ERROR) 
+{
+    printf("Błąd funkcji socket(): %d\n", WSAGetLastError());
+    return 1;
+}
+
+// wybierz interfejs (warstwę komunikacyjną)
+local.sin_addr.s_addr = htonl(INADDR_ANY);
+local.sin_family = AF_INET;
+local.sin_port = htons(DEFAULT_PORT); 
+if (bind(sListen, (struct sockaddr *)&local, sizeof(local)) == SOCKET_ERROR)
+{
+    printf("Błąd funkcji bind(): %d\n", WSAGetLastError());
+    return 1;
+}
+
+// nasłuch
+host = gethostbyname("localhost");
+if (host == NULL)
+{
+    printf("Nie udało się wydobyć nazwy serwera\n");
+    return 1;
+}
+
+listen(sListen, 8);
+printf("Serwer nasłuchuje.\n");
+printf("Adres: %s, port: %d\n", host->h_name, DEFAULT_PORT);
+
+// akceptuj nadchodzące połączenia
+while (1)
+{
+    iAddrSize = sizeof(client);
+    sClient = accept(sListen, (struct sockaddr *)&client, &iAddrSize);
+    if (sClient == INVALID_SOCKET)
+    {
+        printf("Błąd funkcji accept(): %d\n", WSAGetLastError());
+        return 1;
+    }
+    printf("Zaakceptowano połączenie: serwer %s, port %d\n", 
+        inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+    hThread = CreateThread(NULL, 0, ClientThread,
+        (LPVOID)sClient, 0, &dwThreadID);
+    if (hThread == NULL)
+    {
+        printf("Błąd funkcji CreateThread(): %d\n", WSAGetLastError());
+        return 1;
+    } 
+    CloseHandle(hThread); 
+} 
+closesocket(sListen);
+
+WSACleanup();
+return 0;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kod programu klienta: 
+
+\begin{scriptsize}
+\begin{verbatim}
+// prosty moduł klienta
+// komunikacji za pomocą Winsock
+// użycie: klient.exe -s:IP
+
+#include <winsock2.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DEFAULT_COUNT 5
+#define DEFAULT_PORT 5000
+#define DEFAULT_BUFFER 4096
+#define DEFAULT_MESSAGE "Wiadomość testowa"
+
+// tylko Visual C++
+#pragma comment(lib, "ws2_32.lib")
+
+char szServer[128], szMessage[1024];
+
+// funkcja sposob_uzycia
+void sposob_uzycia()
+{
+    printf("Klient.exe -s:IP\n");
+    ExitProcess(1);
+}
+
+void WalidacjaLiniiPolecen(int argc, char **argv)
+{
+    int i;
+
+    if (argc < 2)
+    {
+        sposob_uzycia();
+    }
+
+    for (i=1; i<argc; i++)
+    {
+        if (argv[i][0] == '-')
+        {
+        switch (tolower(argv[i][1]))
+        {
+        case 's':
+            if (strlen(argv[i]) > 3)
+            strcpy(szServer, &argv[i][3]);
+            break;
+        default:
+            sposob_uzycia();
+            break;
+        }
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    WSADATA wsd;
+    SOCKET sClient;
+    char szBuffer[DEFAULT_BUFFER];
+    int ret, i;
+    struct sockaddr_in server;
+    struct hostent *host = NULL;
+
+// linia poleceń
+
+WalidacjaLiniiPolecen(argc, argv);
+
+// inicjuj Winsock 2.2 
+if (WSAStartup(MAKEWORD(2,2), &wsd) != 0)
+{
+    printf("Błąd ładowania Winsock 2.2!\n");
+    return 1;
+}
+
+strcpy(szMessage, DEFAULT_MESSAGE);
+
+// twórz gniazdo do nasłuchu połączeń klientów
+sClient = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+if (sClient == INVALID_SOCKET) 
+{
+    printf("Błąd funkcji socket(): %d\n", WSAGetLastError());
+    return 1;
+}
+
+// wybierz interfejs 
+server.sin_addr.s_addr = inet_addr(szServer);
+server.sin_family = AF_INET;
+server.sin_port = htons(DEFAULT_PORT); 
+
+// jeśli adres nie był w postaci xxx.yyy.zzz.ttt
+// to spróbuj go wydobyć z postaci słownej
+
+if (server.sin_addr.s_addr == INADDR_NONE)
+{
+    host = gethostbyname(szServer);
+    if (host == NULL)
+    {
+        printf("Nie udało się wydobyć nazwy serwera: %s\n", szServer);
+        return 1;
+    }
+    CopyMemory(&server.sin_addr, host->h_addr_list[0], host->h_length);
+}
+
+if (connect(sClient, (struct sockaddr *)&server, sizeof(server)) == SOCKET_ERROR)
+{
+    printf("Błąd funkcji connect(): %d\n", WSAGetLastError());
+    return 1;
+}
+
+// wysyłaj i odbieraj dane
+
+for (i=0; i<DEFAULT_COUNT; i++)
+{
+    ret = send(sClient, szMessage, strlen(szMessage), 0);
+    if (ret == 0)
+        break;
+    else if (ret == SOCKET_ERROR)
+    {
+        printf("Błąd funkcji send(): %d\n", WSAGetLastError());
+        return 1;
+    }
+    printf("Wysłano %d bajtów\n", ret);
+
+    ret = recv(sClient, szBuffer, DEFAULT_BUFFER, 0);
+    if (ret == 0)
+        break;
+    else if (ret == SOCKET_ERROR)
+    {
+        printf("Błąd funkcji recv(): %d\n", WSAGetLastError());
+        return 1;
+    }
+    szBuffer[ret] = '\0';
+    printf("RECV [%d bajtów]: '%s'\n", ret, szBuffer);
+}
+closesocket(sClient); 
+
+WSACleanup();
+return 0;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Serwer w pętli oczekuje na klientów i po nawiązaniu połączenia tworzy nowy wątek, 
+który zajmuje się odbieraniem komunikatów i odsyłaniem ich z powrotem (to tylko przykład!). 
+Klient wymaga oczywiście parametru, którym jest nazwa serwera. 
+Klient nawiązuje połączenie i wysyła do serwera komunikat, po czym czeka na jego echo. 
+
+Struktura obu programów jest dość podobna. Oba tworzą odpowiednie gniazda, przy czym: 
+\begin{itemize}
+  \item serwer najpierw przypisuje gniazdu adres (za pomocą funkcji bind()), 
+        a następnie wchodzi w tryb nasłuchu (listen()), gdzie zatrzymuje się czekając 
+	na połączenia klientów (accept()). 
+  \item klient nawiązuje połączenie z serwerem za pomocą funkcji connect(). 
+\end{itemize}
+
+Oba programy wymieniają się krótkimi informacjami za pomocą funkcji send() i recv(). 
+Serwer nasłuchuje na zadanym porcie, zaś po nawiązaniu połączenia z klientem tworzy nowe 
+gniazdo i nowy wątek, po czym komunikuje się przez nowo utworzone gniazdo w nowym wątku. 
+Dzięki temu serwer może obsługiwać wielu klientów jednocześnie, bez względu na to jak długo 
+trwałoby obsługiwanie pojedyńczego klienta. Podsumowanie schematów działania serwera i klienta
+znajdują się w tabelach \ref{tab:TCPServer} i \ref{tab:TCPKlient}.
+
+\begin{table}[ht]
+	\begin{center}
+
+	 \mbox{socket()}                                   \\ $\downarrow$ \\
+	\framebox[7cm]{Tworzenie gniazda}                  \\ $\downarrow$ \\
+	 \mbox{bind()}                                     \\ $\downarrow$ \\
+	\framebox[7cm]{Przypisywanie adresu}               \\ $\downarrow$ \\
+	 \mbox{listen()}                                   \\ $\downarrow$ \\
+	\framebox[7cm]{Nasłuch połączeń od klientów}       \\ $\downarrow$ \\
+	 \mbox{accept()}                                   \\ $\downarrow$ \\
+	\framebox[7cm]{Akceptacja połączenia klienta}      \\ $\downarrow$ \\
+	 \mbox{send(), recv()} \\ 
+
+	\end{center}
+\caption{Schemat serwera TCP korzystającego z gniazd} 
+\label{tab:TCPServer}
+\end{table}
+
+\begin{table}[ht]
+	\begin{center}
+
+	 \mbox{socket()}                                   \\ $\downarrow$ \\
+	\framebox[7cm]{Tworzenie gniazda}                  \\ $\downarrow$ \\
+	 \mbox{connect()}                                  \\ $\downarrow$ \\
+	\framebox[7cm]{Połączenie z serwerem}              \\ $\downarrow$ \\
+	 \mbox{send(), recv()} \\ 
+
+	\end{center}
+\caption{Schemat klienta TCP korzystającego z gniazd} 
+\label{tab:TCPKlient}
+\end{table}
+
+Jak w związku z tym napisać własną przegląrarkę Internetową? Otóż kod programu klienta
+musiałby łączyć się do wybranego serwera do portu 80, a następnie wysyłać polecenia
+protokołu HTTP, na przykład {\bf GET index.html}, po którym serwer odpowiedziałby
+przesyłając strumień danych, będący kodem strony {\bf index.html}. Kod tej strony należałoby
+następnie sparsować i udostępnić użytkownikowi, wyławiając przy okazji hyperlinki, dzięki
+którym użytkownik mógłby wydawać programowi kolejne polecenia.
+
+A jak napisać własny serwer WWW? Otóz kod programu serwera musiałby oczekiwać na połączenia
+klientów i reagować na dobrze sformułowane polecenia protokołu HTTP. Na przykład, gdyby polecenie
+od klienta brzmiało {\bf GET index.html}, serwer musiałby z dysku odczytać zawartość pliku
+{\bf index.html} i wysłać go do połączonego klienta. 
+
+W praktyce napisanie dobrej przeglądarki Internetowej czy dobrego serwera WWW mogłoby być dość żmudne, jednak
+bardzo ograniczone możliwości można uzyskać niewielkim nakładem pracy. 
+
+\subsubsection{Gniazda asynchroniczne}
+
+Wywołania funkcji operujących na gniazdach są najczęściej {\em blokujące}, to znaczy że
+wykonanie kodu zatrzymuje się na wywołaniu funkcji na tak długo, aż działanie takiej funkcji
+zakończy się. Może to powodować mnóstwo kłopotów przy tworzeniu programów okienkowych - okno
+przestanie reagować na komunikaty, ponieważ kod zatrzyma się na wykonaniu funkcji obsługującej gniazda.
+
+Aby poradzić sobie z tym problemem można zażądać od WinSock {\em asynchronicznej} obsługi gniazd, to
+znaczy informowania o zdarzeniach związanych z gniazdami za pomocą komunikatów. 
+Asynchroniczny tryb pracy WinSock ustala się za pomocą funkcji 
+
+\begin{scriptsize}
+\begin{verbatim}
+int WSAAsyncSelect (
+
+    SOCKET s,	
+    HWND hWnd,	
+    unsigned int wMsg,	
+    long lEvent	
+   );
+\end{verbatim}
+\end{scriptsize}

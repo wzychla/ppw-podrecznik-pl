@@ -1,0 +1,1541 @@
+﻿\subsection{Klasy}
+\label{subsubsection:klasy}
+
+Pojęcie klasy jest fundamentalnym pojęciem programowania obiektowego. Pojedyńcza klasa opisuje cechy 
+jakiegoś konkretnego obiektu - jego właściwości i możliwe akcje. 
+
+Najprostsza definicja klasy w C\# mogłaby wyglądać tak:
+
+\begin{scriptsize}
+\begin{verbatim}
+class cOsoba
+{
+  public int wiek; 
+}
+\end{verbatim}
+\end{scriptsize}
+
+Taka definicja pozwala konstruować obiekty opisanego typu i odwoływać się do jedynego {\em 
+pola} obiektów tej klasy:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class cOsoba 
+  {
+    public int wiek; 
+  } 
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      cOsoba o = new cOsoba();
+      o.wiek = 13;
+
+      Console.WriteLine( "wiek osoby to " + o.wiek.ToString() + " lat" );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Ponieważ w C\# nie ma znanych z C i C++ plików nagłówkowych, w których umieszczało się deklaracje funkcji,
+cała definicja klasy musi znajdować się w jednym pliku. Nie ma również potrzeby pisania deklaracji
+wyprzedzających - klasa może być używana w dowolnym miejscu kodu bez względu na miejsce jej definicji, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+class Example
+{
+  class A
+  {
+    B b;
+  }
+  class B
+  {
+    A a;
+  }
+  public static void Main()
+  {
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Definicja klasy składa się z definicji {\em elementów składowych} 
+określających jej funkcjonalność. W C\# istnieje 7 możliwych
+rodzajów elementów składowych:
+
+\begin{description}
+
+\item [pola] Pole jest elementem składowym klasy, który przechowuje jakąś wartość.
+\item [metody] Metoda jest funkcją, która najczęściej w jakiś sposób operuje na wartościach przechowywanych
+w polach.
+\item [właściwości (propercje)] Propercje są metodami, które z punktu widzenia klientów klasy wyglądają jak pola.
+\item [stałe] Stałe są polami, których wartość nie może ulegać zmianom.
+\item [indeksery] Indeksery są konstrukcjami językowymi, które pozwalają na dostęp do danych klasy tak, jakby
+były one umieszczone w tablicy, choć wewnętrzna reprezentacja może być zupełnie inna.
+\item [zdarzenia] Zdarzenia powodują wykonywanie się jakiegoś kodu. Zdarzenia mają swoje listy słuchaczy, a
+zaistnienie zdarzenia powoduje wykonanie wszystkich funkcji na liście słuchaczy.
+\item [operatory] W C\# istnieje możliwość przeciążania kilku standardowych operatorów.
+
+\end{description}
+
+Każdy element składowy (z drobnymi wyjątkami) może być opatrzony odpowiednim {\em kwalifikatorem dostępu}.
+
+\begin{description}
+
+\item [public] Brak ograniczeń w dostępie do składowej.
+\item [protected] Dostęp jest ograniczony do składowych danej klasy i klas potomnych.
+\item [internal] Dostęp jest ograniczony do bieżącego modułu.
+\item [protected internal] Dostęp jest ograniczony do składowych danej klasy i klas potomnych bieżącego modułu.
+\item [private] Dostęp jest ograniczony do składowych danej klasy.
+
+\end{description}
+
+W przeciwieństwie do C++ każda składowa klasy musi być jawnie opatrzona odpowiednim kwalifikatorem dostępu, 
+zaś jego brak oznacza domyślnie kwalifikator {\em private}, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+class Example
+{
+  class A
+  {
+    public string s;
+    int i;
+  }
+  public static void Main()
+  {
+    A a = new A();
+    a.s = "Ala ma kota";
+    a.i = 5; // błąd
+  }
+}
+
+example.cs(14,2): error CS0122: 'Example.A.i' is inaccessible due to its
+        protection level
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Pola}
+
+Projektując obiekty dla swojej aplikacji, programista zwykle stoi przed zadaniem zbudowania zbioru
+klas tak, aby jak najlepiej opisać problem, który rozwiązywać ma aplikacja. Stąd naturalne są konstrukcje,
+w których polami klasy opisującej osobę byłyby jej atrybuty takie jak imię, nazwisko, data urodzenia itp.,
+klasa opisująca pozycję w bibliotece mogłaby zawierać pola opisujące rodzaj pozycji, jej tytuł, autora i datę
+wydania itp.
+
+\begin{scriptsize}
+\begin{verbatim}
+class COsoba
+{
+  public string Imie;
+  public string Nazwisko;
+  public DateTime data_urodzenia;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Przypomnijmy sobie, że w C++ istnieją dwie możliwości utworzenia obiektu:
+\begin{scriptsize}
+\begin{verbatim}
+COsoba  osoba1;
+COsoba* osoba2 = new COsoba();
+...
+\end{verbatim}
+\end{scriptsize}
+
+W C\# klasa opisana tak jak wyżej będzie typem referencyjnym, to znaczy że użycie obiektu będzie 
+wymagało jego jawnego utworzenia:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+COsoba osoba = new COsoba();
+...
+\end{verbatim}
+\end{scriptsize}
+
+Sam term {\em osoba} funkcjonuje w CTS jako referencja do obiektu na stercie programu. Odwołania do jego
+składowych odbywają się za pomocą operatora ".", na przykład
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+osoba.Imie = "Xawery";
+...
+\end{verbatim}
+\end{scriptsize}
+
+Programista może w klasie zdefiniować również pola {\em statyczne}. Mają one własność przynależenia do klasy,
+a nie do żadnego konkretnego obiektu klasy. Intuicyjnie można więc rozumieć pola statyczne jako 
+odpowiednik zmiennych globalnych, występujących w innych językach programowania.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class COsoba 
+  {
+    public static int IloscOsob; 
+  } 
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      COsoba.IloscOsob = 17;
+      Console.WriteLine( COsoba.IloscOsob.ToString() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Metody}
+
+Metody zawierają w sobie kod wykonywany podczas działania programu. Na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class COsoba 
+  {
+    public string Imie;
+    public string Nazwisko;
+
+    public string ImieNazwisko()
+    {
+      return Imie+" "+Nazwisko;
+    }
+  } 
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      COsoba o   = new COsoba();
+
+      o.Imie     = "Xawery";
+      o.Nazwisko = "Xawerowski";
+
+      Console.WriteLine( o.ImieNazwisko() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Specjalne znaczenie mają metody statyczne, które podobnie jak pola statyczne nie są przypisane do
+konkretnej instancji obiektu danej klasy, tylko do klasy jako takiej. Podobnie jak pola, metody statyczne
+są intuicyjnymi odpowiednikami funkcji globalnych z C czy C++.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class CInfo
+  {
+    public static string GetInfo()
+    {
+      return "Info";
+    }
+  } 
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      Console.WriteLine( CInfo.GetInfo() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+W standardowy sposób {\em przeciąża się} metody, tak aby akceptowały różne listy wywołania:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    static void Metoda( int i, string s )
+    {
+	  Console.WriteLine( String.Format( "Liczba '{0}', napis '{1}' ", i, s ) );
+    }
+    static void Metoda( int i )
+    {
+      Metoda( i, "jakis napis" );
+    }
+    static void Metoda( string s )
+    {
+      Metoda( 17, s );
+    }
+
+    public static void Main()
+    {
+      Metoda( 5, "Ala ma kota" );
+      Metoda( 13 );
+      Metoda( "kot ma Ale" );
+    }
+  }
+}
+
+C:\Example>example.exe
+Liczba '5', napis 'Ala ma kota'
+Liczba '13', napis 'jakis napis'
+Liczba '17', napis 'kot ma Ale'
+\end{verbatim}
+\end{scriptsize}
+
+Istnieje również możliwość poinformowania kompilatora o tym, że metoda może być wołana z nieznaną
+w czasie kompilacji liczbą parametrów:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {
+    static void VariableParList( params int[] iInfo )
+    {
+      Console.Write( "parametry: " );
+      for ( int i=0; i<iInfo.GetLength(0); i++ )
+        Console.Write( iInfo[i].ToString()+"," );
+      Console.WriteLine();
+    }
+
+    public static void Main()
+    {
+      VariableParList( 1 );
+      VariableParList( 1, 2 );
+      VariableParList( 1, 2, 3, 4, 5 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kompilator nie pozwoli jednak na skompilowanie kodu, w którym ze względu na przeciążenie
+funkcji intencje programisty są niejasne.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class CMain 
+  {
+    static void A( int a, params int[] tab )
+    {
+      Console.WriteLine( "A1" ); 
+    }
+  
+    static void A( int a, int b, params int[] tab )
+    {
+      Console.WriteLine( "A2" ); 
+    }
+
+    public static void Main()
+    {
+      A( 1, 2, 3 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Czy wołając funkcję {\bf A} programista miał na myśli wersję pierwszą, z jednym parametrem jawnym, czy drugą,
+z dwoma parametrami jawnymi? Cokolwiek myślał programista, kompilator ma własne zdanie na temat takiego
+kodu:
+
+\begin{scriptsize}
+\begin{verbatim}
+example.cs(19,8): error CS0121: The call is ambiguous between the following methods
+        or properties: 'Example.CMain.A(int, int, params int[])' and
+        'Example.CMain.A(int, params int[])'
+\end{verbatim}
+\end{scriptsize}
+
+Specjalną rolę wśród metod w klasie pełni metoda Main(), która określa punkt startowy 
+aplikacji\footnote{O możliwości
+umieszczenia wielu alternatywnych metod Main() w kodzie aplikacji napisano więcej na stronie 
+\pageref{main_wielerazy}.}. Parametry startowe programu są przekazane jako tablica do metody Main():
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main( string[] args )
+    {
+      Console.WriteLine( "Oto kolejne argumenty wywolania programu: " );
+      foreach ( string s in args )
+        Console.WriteLine( s );
+    }
+  }
+}
+
+C:\Example>example.exe 17 "napis napis"
+Oto kolejne argumenty wywolania programu:
+17
+napis napis
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Przekazywanie parametrów do metod}
+
+Sposób przekazania parametru do metody zależy od tego, czy zmienna jest typu prostego czy typu
+referencyjnego. Jeśli zmienna jest typu prostego, jak {\em int}, to do metody zostanie przekazana wartość,
+jeśli zmienna jest typu referencyjnego, to do metody zostanie przekazana referencja.
+
+Oznacza to, że wołana metoda nie ma możliwości zmiany, w przypadku typów prostych - wartości zmiennej,
+w przypadku typów referencyjnych - referencji do zmiennej. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Zmien( int i, string s )
+    {
+      i = 1;
+      s = "Ala ma kota";
+    }
+    public static void Main()
+    {
+      int    i = 0;
+      string s = "Kot ma Ale";
+
+      Console.WriteLine( "{0}, {1}", i, s );
+      Zmien( i, s );
+      Console.WriteLine( "{0}, {1}", i, s );
+    }
+  }
+}
+
+C:\Example>example.exe
+0, Kot ma Ale
+0, Kot ma Ale
+\end{verbatim}
+\end{scriptsize}
+
+To, że referencja do przekazywanego obiektu nie może ulegać zmianie nie oznacza, 
+że wartość obiektu referencyjnego nie może być zmodyfikowana - wprost przeciwnie,
+metoda ma możliwość zmiany właściwości obiektu przekazanego przez referencję.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Zmien( ArrayList a )
+    {
+      a.Add( 0 );
+    }
+    public static void Main()
+    {
+      ArrayList a = new ArrayList();
+      Console.WriteLine( "elementow na liscie {0}", a.Count );
+      Zmien( a );
+      Console.WriteLine( "elementow na liscie {0}", a.Count );      
+    }
+  }
+}
+
+C:\Example>example.exe
+elementow na liscie 0
+elementow na liscie 1
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli intencją programisty jest zmiana wartości przekazywanej do funkcji, może zażądać przekazania do
+funkcji referencji do obiektu (w przypadku typu referencyjnego będzie to referencja do referencji) za
+pomocą słowa kluczowego {\em ref}. Jest to dosłowny odpowiednik przekazywania parametrów do funkcji przez
+referencje, znany z C++.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Zmien( ref int i, ref string s )
+    {
+      i = 1;
+      s = "Ala ma kota";
+    }
+    public static void Main()
+    {
+      int    i = 0;
+      string s = "Kot ma Ale";
+
+      Console.WriteLine( "{0}, {1}", i, s );
+      Zmien( ref i, ref s );
+      Console.WriteLine( "{0}, {1}", i, s );
+    }
+  }
+}
+
+C:\Example>example.exe
+0, Kot ma Ale
+1, Ala ma kota
+\end{verbatim}
+\end{scriptsize}
+
+Wydawać by się mogło, że w taki sposób należy również przekazywać parametry, które miałyby służyć do
+przekazywania wyników do funkcji. Naiwnie możnaby więc spróbować napisać coś takiego:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Oblicz( ref int wynik )
+    {
+      wynik = 1;
+    }
+    public static void Main()
+    {
+      int    wynik;
+
+      Oblicz( ref wynik );
+      Console.WriteLine( "wynik: {0}", wynik );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+jednak kompilator takiej konstrukcji nie przyjmie
+
+\begin{scriptsize}
+\begin{verbatim}
+example.cs(16,19): error CS0165: Use of unassigned local variable 'wynik'
+\end{verbatim}
+\end{scriptsize}
+
+Istnieją dwa możliwe rozwiązania takiego problemu:
+\begin{itemize}
+\item Przed wykonaniem obliczeń przypisać jakąś wartość zmiennej {\em wynik}. 
+Nie jest to rozwiązanie eleganckie, skoro {\em wynik} ma dopiero otrzymać wartość w wyniku obliczeń.
+\item Zadeklarować parametr funkcji jako {\em out int wynik} zamiast {\em ref int wynik}. Słowo
+kluczowe {\em out} jest równoważne {\em ref}, przy czym zmienna nie musi otrzymać wartości przed
+wykorzystaniem jej jako parametru do funkcji.
+\end{itemize}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Oblicz( out int wynik )
+    {
+      wynik = 1;
+    }
+    public static void Main()
+    {
+      int    wynik;
+
+      Oblicz( out wynik );
+      Console.WriteLine( "wynik: {0}", wynik );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Konstruktory}
+
+Konstruktory są w pewnym sensie specjalnymi metodami, które zawierają kod inicjujący obiekty. 
+Konstruktory definiuje się dokładnie tak samo jak w C++ czy w Javie: przez utworzenie
+kodu pseudo-metody o nazwie takiej jak nazwa klasy. 
+Podstawowa różnica między C\# a na przykład C++ jest taka, że, podobnie jak w Javie, środowisko uruchomieniowe
+za pomocą {\em odśmiecacza} zajmuje się oczyszczaniem pamięci z nieużywanych już obiektów\footnote{Istnieje
+specjalny interfejs {\em IDisposable} przygotowany na użytek klas, które potrzebują jawnie wykonać akcje przy
+niszczeniu obiektu przez odśmiecacz.}.
+
+Konstruktory można oczywiście przeładowywać, można również korzystać z konstruktorów klas bazowych lub
+z innych konstruktorów już określonych w klasie za pomocą wyrażeń inicjujących {\bf base(...)} oraz
+{\bf this(...)}, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Threading;
+
+namespace Example
+{
+  public class CExample
+  {
+    DateTime d;
+    int i=0, j=0;
+
+    public CExample()
+    {
+      d = DateTime.Now;
+    }
+
+    public CExample( int I, int J ) : this()
+    {
+      this.i = I; 
+      this.j = J;
+    }
+
+    public override string ToString()
+    {
+      return String.Format( "[{0},{1}], utworzone {2}", i, j, d );
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      CExample e1 = new CExample();
+      Thread.Sleep( 1000 );
+      CExample e2 = new CExample( 13, 17 );
+
+      Console.WriteLine( e1 );
+      Console.WriteLine( e2 );
+    }
+  }
+}
+
+C:\Example>example.exe
+[0,0], utworzone 2003-03-18 21:48:08
+[13,17], utworzone 2003-03-18 21:48:10
+\end{verbatim}
+\end{scriptsize}
+
+C\# pozwala zdefiniować konstruktor statyczny, który będzie wywołany przed skonstruowaniem
+pierwszego obiektu klasy. Statyczny konstruktor może być tylko jeden, bez żadnego kwalifikatora dostępu i
+z pustą listą parametrów.
+
+\begin{scriptsize}
+\begin{verbatim}
+class CExample
+{
+  static CExample()
+  {
+    ...
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Propercje}
+
+Propercje pozwalają ukryć implementację metody tak, aby z punktu widzenia klienta klasy 
+wyglądała ona jak pole. Propercje stosuje się tam, gdzie istnieje konieczność nadania
+lub pobrania wartości pola, a przy tym wykonać jakieś dodatkowe operacje. Za pomocą propercji można
+także ograniczyć dostęp do jakiegoś pola, czyniąc je tylko do odczytu lub tylko do zapisu.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class COsoba
+  {
+    private int      m_wiek;
+    private DateTime m_dataUrodzenia;
+	
+    public int wiek
+    {
+      get { return m_wiek; }
+    }
+
+    public DateTime dataUrodzenia
+    {
+      get { return m_dataUrodzenia; }
+      set 
+      {
+        m_dataUrodzenia = value;
+        m_wiek = DateTime.Now.Year-m_dataUrodzenia.Year;
+      }
+    }
+  }
+
+  public class CMain
+  {    
+    public static void Main()
+    {
+      COsoba o = new COsoba();
+      o.dataUrodzenia = new DateTime( 1950, 3, 8 );
+
+      Console.WriteLine( "Osoba:\r\nUrodzona\t{0:d}\r\nWiek\t\t{1}", 
+                         o.dataUrodzenia, o.wiek );
+    }
+  }
+}
+
+C:\Example>example.exe
+Osoba:
+Urodzona        1950-03-08
+Wiek            53
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Stałe}
+
+Stałe można zadeklarować w klasie przez opatrzenie deklaracji pola kwalifikatorem {\em const}.
+
+\begin{scriptsize}
+\begin{verbatim}
+public const string sKraj = "Polska";
+\end{verbatim}
+\end{scriptsize}
+
+Co jednak zrobić, gdy wartość stałej jest znana dopiero {\bf po} uruchomieniu programu? W C\# taki problem
+rozwiązuje kwalifikator {\em readonly}, który oznacza pole zawierające stałą, przy czym wartość takiego
+pola można modyfikować {\bf tylko} w konstruktorze klasy.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class COsoba
+  {
+    public readonly DateTime dataI;
+    public COsoba()
+    {
+      dataI = DateTime.Now;
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      COsoba o = new COsoba();
+      Console.WriteLine( o.dataI );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Indeksery}
+
+Indeksery pozwalają klientom klasy traktować obiekt tak, jakby był on tablicą, bez względu na 
+reprezentację pól obiektu. Indeksery podobne są trochę do propercji - podobnie jak propercje indeksery
+mogą pobierać wartość {\em get} lub sposób ustalać wartość {\em set}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class COsoba
+  {
+    public int this[int i, int j]
+    {
+      get { return i+j; }
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      COsoba o = new COsoba();
+      Console.WriteLine( o[5,17] );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Idea indekserów narodziła się z chęci ułatwienia programistom dostępu do składowych obiektu, który
+w jakiś sposób opisuje strukturę tablicopodobną. Na przykład klasy opisujące okna potomne, takie jak
+ComboBox czy ListView, z pewnością jako jedno z pól będą zawierać jakąś tablicę elementów przechowywanych
+w wewnętrznej liście obiektu. Indekser umożliwia w takim przypadku dostęp do takiej listy bezpośrednio
+przez indeksowanie obiektu, a nie jego pola, tzn. na przykład zamiast
+
+\begin{scriptsize}
+\begin{verbatim}
+ComboBox comboBox = new ComboBox();
+...
+comboBox.Items[5] = ...
+\end{verbatim}
+\end{scriptsize}
+
+moglibyśmy pisać (mając zdefiniowany odpowiedni indekser)
+
+\begin{scriptsize}
+\begin{verbatim}
+ComboBox comboBox = new ComboBox();
+...
+comboBox[5] = ...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Przeciążanie operatorów}
+
+Przeciążanie operatorów nie wnosi do języków programowania nic, poza czystością i elegancją kodu. Z
+technicznego punktu widzenia przeciążone operatory są jakimiś metodami, które biorą określoną ilość 
+parametrów i zwracają wyniki. 
+
+C\# pozwala przeciążać operatory za pomocą składni
+
+\begin{scriptsize}
+\begin{verbatim}
+public static retval operatorop (object1 [, object2])
+\end{verbatim}
+\end{scriptsize}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CVec
+  {
+    public int x;
+    public int y;
+
+    public CVec( int X, int Y )
+    {
+      x = X; y = Y;    
+    }
+
+    public static CVec operator+( CVec v1, CVec v2 )
+    {
+      return new CVec( v1.x+v2.x, v1.y+v2.y );
+    }
+
+    public override string ToString()
+    {
+      return String.Format( "[{0},{1}]", x, y );
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      CVec u = new CVec( 2, 3 );
+      CVec v = new CVec( 1, 1 );
+      Console.WriteLine( "{0}+{1}={2}", u, v, u+v );
+    }
+  }
+}
+
+C:\Example>example.exe
+[2,3]+[1,1]=[3,4]
+\end{verbatim}
+\end{scriptsize}
+
+Obowiązują następujące zasady przy przeciążaniu operatorów w C\#:
+\begin{itemize}
+\item można przeciążać operatory unarne +, -, !, ~, ++, --, {\em true} i {\em false} oraz binarne
++, -, *, /, %, &, -, ^, <<, >>, ==, !=, >, <, >= i <=
+\item nie można przeciążać operatora [], można jednak zdefiniować indekser, który pozwala traktować obiekt jak tablicę
+\item nie można przeciążać operatora (), z wyjątkiem definiowania własnych jawnych konwersji
+\item operatory warunkowe (\&\&, --, i ?:) nie mogą być przeciążane
+\item operatory nie występujące w C\# nie mogą być przeciążane
+\item operatory zdefiniowane przez Framework (., =, {\em new}) nie mogą być przeciążane   
+\item operatory (== i !=) mogą być przeciążane, wymaga to jednak przeciążenia metod {\em Equals} i {\em GetHashCode}
+\item przeładowanie niektórych operatorów binarnych (na przykład +) powoduje automatyczne przeładowanie pewnych
+innych operatorów (w tym przypadku +=)
+\item operatory $<$ i $>$ muszą być przeładowywane jednocześnie
+\end{itemize}
+
+\subsection{Struktury}
+
+Typy proste w C\# deklaruje się tak samo jak typy referencyjne, zastępując słowo kluczowe {\em class}
+słowem kluczowym {\em struct}. Tak jak typy referencyjne nazywamy klasami, tak typy proste nazywamy
+strukturami.
+
+Deklaracja struktury może zawierać dowolną ilość konstruktorów, z wyjątkiem konstruktora bezparametrowego,
+który jest tworzony domyślnie i powoduje wyzerowanie (nadanie wartości domyślnych) wartości wszystkich
+pól struktury. W przypadku typów prostych, które nie zawierają pól, korzystanie ze zmiennych możliwe jest więc
+bez wywołania konstruktora (jak na przykład w przypadku typu {\em int}).
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  struct RGB
+  {
+    public int r;
+    public int g;
+    public int b;
+    
+    public RGB( int R, int G, int B )
+    {
+      r = R; g = G; b = B;
+    }
+
+    public override string ToString()
+    {
+      return String.Format( "[R:{0}, G:{1}, B:{2}]", r, g, b );
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+       RGB rgb  = new RGB(); 
+       RGB rgb2 = new RGB( 1, 2, 3 );
+       Console.WriteLine( rgb );
+       Console.WriteLine( rgb2 );
+    }
+  }
+}
+
+C:\Example>example.exe
+[R:0, G:0, B:0]
+[R:1, G:2, B:3]
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Dziedziczenie}
+
+Model obiektowy C\# udostępnia pojedyńcze dziedziczenie. Oznacza to, że każda klasa może mieć co najwyżej
+jedną klasę bazową. O relacjach między klasami programista informuje kompilator za pomocą składni
+
+\begin{scriptsize}
+\begin{verbatim}
+class <klasaPotomna> : <klasaBazowa>
+\end{verbatim}
+\end{scriptsize}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class A
+  {
+    public int ID;
+  }
+  class B : A
+  {
+    public int ID2;
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      A a = new A();
+      B b = new B();
+      
+      a.ID  = 1;
+      b.ID  = 2;
+      b.ID2 = 3;
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli jakaś metoda występuje w klasie potomnej i w klasie bazowej, to kompilator zakłada, że 
+metoda z klasy potomnej {\em przykrywa} definicję metody z klasy bazowej (ominięcie obowiązkowego
+w takim przypadku kwalifikatora {\em new} zostanie przez kompilator wykryte i programista zostanie ostrzeżony
+o jego braku).
+
+Co się jednak stanie, jeśli obiekt klasy potomnej zostanie najpierw zrzutowany na obiekt klasy
+macierzystej, a następnie zostanie wywołana metoda?
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class A
+  {
+    public void DajGlos()
+    {
+      Console.WriteLine( "A" );
+    }
+  }
+  class B : A
+  {
+    new public void DajGlos()
+    {
+      Console.WriteLine( "B" );
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      A a = new A();
+      B b = new B();
+
+      a.DajGlos();
+      b.DajGlos();
+      ((A)b).DajGlos();
+    }
+  }
+}
+
+C:\Example>example.exe
+A
+B
+A
+\end{verbatim}
+\end{scriptsize}
+
+Jak widać, kompilator {\em statycznie} wyznaczył typ obiektu i wymusił zawołanie funkcji właściwej dla
+wyznaczonego typu. 
+
+Programista może jednak zażądać {\em polimorficznego} traktowania przeciążonych w klasach potomnych metod, 
+to znaczy {\em dynamicznego wyznaczania} typu obiektu i wołania odpowiedniej funkcji. Służą do tego
+kwalifikatory {\em virtual} i {\em override} umieszczone przy odpowiednich deklaracjach.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class A
+  {
+    virtual public void DajGlos()
+    {
+      Console.WriteLine( "A" );
+    }
+  }
+  class B : A
+  {
+    override public void DajGlos()
+    {
+      Console.WriteLine( "B" );
+    }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      A a = new A();
+      B b = new B();
+
+      a.DajGlos();
+      b.DajGlos();
+      ((A)b).DajGlos();
+    }
+  }
+}
+
+C:\Example>example
+A
+B
+B
+\end{verbatim}
+\end{scriptsize}
+
+Programista może zabezpieczyć klasę przed dziedziczeniem z niej za pomocą kwalifikatora {\em sealed}, na przykład
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  sealed class A
+  {
+  }
+  class B : A
+  {
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+    }
+  }
+}
+
+example.cs(9,9): error CS0509: 'Example.B' : cannot inherit from sealed class
+        'Example.A'
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Niszczenie obiektów}
+
+Niszczeniem obiektów w C\# zajmuje się odśmiecacz. Co pewien czas odśmiecacz przegląda stertę w poszukiwaniu
+obiektów do których brak już referencji i zwalnia przydzieloną im pamięć. Programista nie ma więc kontroli
+nad niszczeniem obiektów takiej jak na przykład w C++. Istnieją jednak dwa aspekty niszczenia obiektów, 
+których programista musi być świadomy.
+
+\subsubsection{Destruktory}
+
+Zadziwiające, ale destruktory istnieją w C\#. Ich działanie zdecydowanie różni się od działania
+destruktorów w C++, bardziej zaś przypomina działanie metod typu {\em Finalize} z Javy.
+
+Chodzi o to, że programista nie ma żadnej kotroli nad tym, kiedy destruktor zostanie wywołany. 
+Odśmiecacz wykona kod zawarty w destruktorze tuż przed usunięciem obiektu, jednak sam moment usuwania
+obiektu jest z punktu widzenia programisty nie możliwy do określenia. 
+
+Poniższy przykład pokazuje, że destruktory są wywoływane tuż przed zakończeniem programu. Okazuje się jednak, że
+przerwanie działania programu za pomocą CTRL+C spowoduje, że destruktory nie wykonają się!
+
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Threading;
+
+namespace Example
+{
+  public class CExample
+  {
+    public int numer;
+
+    public  CExample( int Numer )
+    {
+      numer = Numer;
+      Console.WriteLine( "Utworzono obiekt {0}", numer );
+    }
+
+    ~CExample()
+    {
+      Console.WriteLine( "Zniszczono obiekt {0}", numer );
+    }
+
+    public static void Main(string[] args)
+    {
+      int objectNo = 10;
+      
+      CExample[] examples = new CExample[ objectNo ];
+      for ( int i=0; i<10; i++ )
+        examples[i] = new CExample( i ); 
+
+      Thread.Sleep( 5000 );
+    }
+  }
+}
+
+C:\Example>example.exe
+Utworzono obiekt 0
+Utworzono obiekt 1
+Utworzono obiekt 2
+Utworzono obiekt 3
+Utworzono obiekt 4
+Utworzono obiekt 5
+Utworzono obiekt 6
+Utworzono obiekt 7
+Utworzono obiekt 8
+Utworzono obiekt 9
+Zniszczono obiekt 9
+Zniszczono obiekt 8
+Zniszczono obiekt 7
+Zniszczono obiekt 6
+Zniszczono obiekt 5
+Zniszczono obiekt 4
+Zniszczono obiekt 3
+Zniszczono obiekt 2
+Zniszczono obiekt 1
+Zniszczono obiekt 0
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Interfejs {\em IDisposable}}
+
+Z innego rodzaju problemem mamy do czynienia, kiedy obiekt C\# inicjuje zasoby innego 
+rodzaju niż pamięć, na przykład obiekty systemowe takie jak gniazda, połączenia do baz danych, obiekty GDI.
+Brak kontroli nad zwalnianiem tych zasobów (na przykład uchwytów GDI), może wręcz zakłócić pracę systemu!
+Aby uniknąć takich problemów, należy zaimplementować w klasie interfejs {\em IDisposable}, który ma
+jedną metodę: {\em Dispose()}, w której programista może jawnie zniszczyć zasoby przyznane obiektowi.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Threading;
+
+namespace Example
+{
+  public class CExample : IDisposable
+  {
+    public int numer;
+
+    public  CExample( int Numer )
+    {
+      numer = Numer;
+      Console.WriteLine( "Utworzono obiekt {0}", numer );
+    }
+
+    public void Dispose()
+    {
+      Console.WriteLine( "Zniszczono obiekt {0}", numer );
+    }
+
+    public static void Main(string[] args)
+    {
+      int objectNo = 10;
+      
+      CExample[] examples = new CExample[ objectNo ];
+      for ( int i=0; i<10; i++ )
+        examples[i] = new CExample( i ); 
+
+      Thread.Sleep( 5000 );
+
+      for ( int i=0; i<10; i++ )
+        examples[i].Dispose(); 
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Niestety, programista musi sam pamiętać o wywołaniu metody {\em Dispose} gdy obiekt przestaje być potrzebny.
+W przypadku konstrukcji pojedyńczego obiektu, przydatny okazuje się {\em cukierek syntaktyczny}, polegający
+na umieszczeniu konstrukcji obiektu w klauzuli {\em using}. W chwili zakończenia następującego po niej
+bloku kodu, metoda {\em Dispose()} wołana jest automatycznie.
+
+\label{disposeSyntaxSugar}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Threading;
+
+namespace Example
+{
+  public class CExample : IDisposable
+  {
+    public int numer;
+
+    public  CExample( int Numer )
+    {
+      numer = Numer;
+      Console.WriteLine( "Utworzono obiekt {0}", numer );
+    }
+
+    public void Dispose()
+    {
+      Console.WriteLine( "Zniszczono obiekt {0}", numer );
+    }
+
+    public static void Main(string[] args)
+    {
+      using ( CExample example = new CExample( 0 ) )
+      {
+        Thread.Sleep( 5000 );
+      }
+    }
+  }
+}
+
+C:\Example>example.exe
+Utworzono obiekt 0
+Zniszczono obiekt 0
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Interfejsy}
+
+Kiedy mówimy o klasach, mamy na myśli pewne właściwości. Interfejsy są odpowiednikami klas, przy czym
+dotyczą one jakiejś określonej funkcjonalności. Interfejsy są odpowiednikami klas abstrakcyjnych, znanych
+z innych języków programowania - kiedy klasa {\em implementuje interfejs} (czasem mówimy też {\em dziedziczy
+z interfejsu}), czyli implementuje wszystkie metody interfejsu, klienci tej klasy mogą być pewni istnienia
+w klasie wszystkich definiowanych przez interfejs metod.
+
+Interfejsy są sposobem na przezwyciężenie ograniczenia pojedyńczego dziedziczenia - o ile
+klasa może mieć tylko jedną klasę bazową, o tyle ta sama klasa może implementować dowolną ilość interfejsów.
+Interfejs nie może zawierać pól, tylko specyfikacje metod przy czym w definicji interfejsu metody nie
+mogą mieć żadnych kwalifikatorów dostępu, zaś w implementacji interfejsu w klasie implementowane metody
+muszą być publiczne (inaczej nie miałoby sensu umieszczanie ich w publicznym intefejsie, który klasa
+rzekomo miałaby spełniać).
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  interface I
+  {
+     void DajGlos();
+  }
+  class A : I
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      A a = new A();
+      a.DajGlos();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli klasa nie implementuje wszystkich wymaganych funkcji, to kompilator podczas kompilacji zgłosi błąd.
+
+Z punktu widzenia programisty interfejs zachowuje się jak klasa, to znaczy można obiekty rzutować
+na interfejs, statycznie i dynamicznie\footnote{O konwersji między typami można przeczytać na stronie
+\pageref{KonwersjeMiedzyTypami}.}. Można także definiować zmienne których typem jest konkretny interfejs.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  interface I
+  {
+     void DajGlos();
+  }
+  class A : I
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      A a = new A();
+      I i = a as I;
+      i.DajGlos();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Programista może w czasie wykonania programu dowiedzieć się czy klasa implementuje jakiś interfejs
+za pomocą słowa kluczowego {\em is}. Jest to przydatne zwłaszcza wtedy, kiedy obiekty znajdują się w jakimś
+kontenerze, w którym wszystkie są zrzutowane do typu bazowego {\em object}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  interface I
+  {
+     void DajGlos();
+  }
+  class A : I
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  class B 
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+       A a = new A();
+       B b = new B();
+
+       if ( a is I ) Console.WriteLine( "A implementuje I" );
+       if ( b is I ) Console.WriteLine( "B implementuje I" );
+    }
+  }
+}
+
+C:\Example>example.exe
+A implementuje I
+\end{verbatim}
+\end{scriptsize}
+
+Interfejsy nie są domyślnie dziedziczone z klasy bazowej do klas potomnych. Jeśli programista 
+zrzutuje obiekt klasy potomnej na interfejs implementowany w klasie bazowej, to nawet jeśli klasa
+potomna zawiera odpowiednie metody, zostanie zawołana metoda z klasy bazowej. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  interface I
+  {
+     void DajGlos();
+  }
+  class A : I
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  class B : A
+  {
+     new public void DajGlos()
+     {
+        Console.WriteLine( "B" );
+     }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      B b = new B();
+      b.DajGlos();
+
+      ((I)b).DajGlos();
+    }
+  }
+}
+
+C:\Example>example.exe
+B
+A
+\end{verbatim}
+\end{scriptsize}
+
+Jeśli klasa potomna miałaby implementować interfejs, to należy o tym poinformować kompilator.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  interface I
+  {
+     void DajGlos();
+  }
+  class A : I
+  {
+     public void DajGlos()
+     {
+        Console.WriteLine( "A" );
+     }
+  }
+  class B : A, I
+  {
+     new public void DajGlos()
+     {
+        Console.WriteLine( "B" );
+     }
+  }
+  public class CMain
+  {    
+    public static void Main()
+    {
+      B b = new B();
+      b.DajGlos();
+
+      ((I)b).DajGlos();
+    }
+  }
+}
+
+C:\Example>example.exe
+B
+B
+\end{verbatim}
+\end{scriptsize}
+
+Interfejsy mogą implementować inne interfejsy.
+
+\begin{scriptsize}
+\begin{verbatim}
+interface I
+{
+   void I();
+}
+interface J
+{
+   void J();
+}
+interface IJ : I, J
+{
+   void IJ();
+}
+\end{verbatim}
+\end{scriptsize}

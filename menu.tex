@@ -1,0 +1,130 @@
+﻿\subsection{Tworzenie menu}
+
+Do tworzenia menu przeznaczone są funkcje {\bf CreateMenu}, {\bf AppendMenu} i {\bf SetMenu}.
+
+\begin{scriptsize}
+\begin{verbatim}
+#include <windows.h>
+
+/* Deklaracja wyprzedzająca: funkcja obsługi okna */
+LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
+void CreateMyMenu( HWND hwnd );
+/* Nazwa klasy okna */
+char szClassName[] = "PRZYKLAD";
+
+int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, 
+                   LPSTR lpszArgument, int nFunsterStil)
+{
+    HWND hwnd;               /* Uchwyt okna */
+    MSG messages;            /* Komunikaty okna */
+    WNDCLASSEX wincl;        /* Struktura klasy okna */
+
+    /* Klasa okna */
+    wincl.hInstance     = hThisInstance;
+    wincl.lpszClassName = szClassName;
+    wincl.lpfnWndProc   = WindowProcedure;    // wskaźnik na funkcję obsługi okna  
+    wincl.style         = CS_DBLCLKS;                 
+    wincl.cbSize        = sizeof(WNDCLASSEX);
+
+    /* Domyślna ikona i wskaźnik myszy */
+    wincl.hIcon   = LoadIcon(NULL, IDI_APPLICATION);
+    wincl.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    wincl.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wincl.lpszMenuName = NULL; 
+    wincl.cbClsExtra = 0;   
+    wincl.cbWndExtra = 0;   
+    /* Jasnoszare tło */
+    wincl.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
+
+    /* Rejestruj klasę okna */
+    if(!RegisterClassEx(&wincl)) return 0;
+
+    /* Twórz okno */
+    hwnd = CreateWindowEx(
+           0,                   
+           szClassName,         
+           "Przykład",       
+           WS_OVERLAPPEDWINDOW, 
+           CW_USEDEFAULT,       
+           CW_USEDEFAULT,       
+           512,                 
+           512,                 
+           HWND_DESKTOP,        
+           NULL,                
+           hThisInstance,       
+           NULL                 
+           );
+
+    CreateMyMenu( hwnd );
+    ShowWindow(hwnd, nFunsterStil);
+    /* Pętla obsługi komunikatów */
+    while(GetMessage(&messages, NULL, 0, 0))
+    {
+           /* Tłumacz kody rozszerzone */
+           TranslateMessage(&messages);
+           /* Obsłuż komunikat */
+           DispatchMessage(&messages);
+    }
+
+    /* Zwróć parametr podany w PostQuitMessage( ) */
+    return messages.wParam;
+}
+
+/* Tę funkcję woła DispatchMessage( ) */
+LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, 
+                                 WPARAM wParam, LPARAM lParam)
+{
+    switch (message)                  
+    {
+           case WM_DESTROY:
+                PostQuitMessage(0);        
+              break;
+           case WM_COMMAND:
+                switch(LOWORD(wParam))
+                {
+                     case 101 : SendMessage( hwnd, WM_CLOSE, 0, 0 );break;
+                }   
+           default:                   
+              return DefWindowProc(hwnd, message, wParam, lParam);
+    }
+    return 0;
+}
+
+void CreateMyMenu( HWND hwnd )
+{
+	HMENU hMenu;
+	HMENU hSubMenu;
+
+	hMenu = CreateMenu () ;
+
+	hSubMenu = CreateMenu () ;
+	AppendMenu (hSubMenu, MF_STRING   , 100, "&Nowy") ;
+	AppendMenu (hSubMenu, MF_SEPARATOR, 0  , NULL) ;
+	AppendMenu (hSubMenu, MF_STRING   , 101, "&Koniec") ;
+	AppendMenu (hMenu, MF_POPUP, hSubMenu, "&Plik") ;
+
+	hSubMenu = CreateMenu () ;
+	AppendMenu (hSubMenu, MF_STRING,    102,  "&Undo") ;
+	AppendMenu (hSubMenu, MF_SEPARATOR, 0,    NULL) ;
+	AppendMenu (hSubMenu, MF_STRING,    103,   "Re&do") ;
+	AppendMenu (hMenu, MF_POPUP, hSubMenu, "&Edycja") ;
+
+	SetMenu( hwnd, hMenu );
+}
+\end{verbatim}
+\end{scriptsize}
+
+Menu utworzone w taki sposób może być również wykorzystywane jak menu kontekstowe:
+
+\begin{scriptsize}
+\begin{verbatim}
+case WM_RBUTTONUP:
+     point.x = LOWORD (lParam) ;
+     point.y = HIWORD (lParam) ;
+     ClientToScreen (hwnd, &point) ;
+          
+     TrackPopupMenu (hMenu, TPM_RIGHTBUTTON, point.x, point.y, 
+                          0, hwnd, NULL) ;
+return 0 ;
+\end{verbatim}
+\end{scriptsize}

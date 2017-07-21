@@ -1,0 +1,819 @@
+﻿\subsection{Delegaci i zdarzenia}
+\label{delegaciZdarzenia}
+
+\subsubsection{Delegaci}
+
+{\em Delegat} jest typem referencyjnym, który w elegancki sposób przechowuje wskaźnik na funkcję. 
+CTS za pomocą delegatów pozwala przekazywać funkcje jako parametry do innych funkcji, kontrolując 
+jednocześnie zgodność typów - kompilator nie pozwoli na utworzenie delegata z funkcji o nieodpowiednim
+prototypie.
+
+Sama deklaracja delegata przypomina deklarację wskaźnika na funkcję w języku C:
+
+\begin{scriptsize}
+\begin{verbatim}
+typedef int(*pfPInt)(); // definicja typu wskaźnika na funkcję w C
+\end{verbatim}
+\end{scriptsize}
+
+\begin{scriptsize}
+\begin{verbatim}
+delegate int pfPInt(); // definicja delegata - wskaźnika na funkcję w C#
+\end{verbatim}
+\end{scriptsize}
+
+Podkreślmy - delegaci są obiektami, konstruuje się ich więc w standardowy sposób za pomocą {\em new}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+
+namespace Example
+{ 
+  public class MathClass
+  {
+  	public static int Kwadrat( int n )
+  	{
+  	  return n*n;
+  	}
+  	
+  	public static int Dwukrotnosc( int n )
+  	{
+  	  return n+n;
+  	}
+  }
+	
+  public class CMain
+  {    
+    public delegate int MathDelegate( int n );
+  	
+    public static int Oblicz( int n, MathDelegate m )
+    {
+      return m( n );
+    }
+  	
+    public static void Main()
+    {
+      int n1 = Oblicz( 11, new MathDelegate( MathClass.Kwadrat ) );
+      int n2 = Oblicz( 11, new MathDelegate( MathClass.Dwukrotnosc ) );
+    	
+      Console.WriteLine( "{0}, {1}", n1, n2 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Dowolna ilość delegatów może być złożona do jednego delegata za pomocą operatora +, którego wykonanie powoduje
+wykonanie całej sekwencji. Jeśli delegaci zwracają wyniki, to wynik złożonego delegata jest wynikiem
+ostatnio wykonanego delegata.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+
+namespace Example
+{ 
+  public class InfoClass
+  {
+  	public static void WypiszKwadrat( int n )
+  	{
+  	  Console.WriteLine( n*n );
+  	}
+  	
+  	public static void WypiszDwukrotnosc( int n )
+  	{
+  	  Console.WriteLine( n+n );
+  	}
+  }
+	
+  public class CMain
+  {    
+  	public delegate void InfoDelegate( int n );
+  	
+  	public static void Oblicz( int n, InfoDelegate m )
+  	{
+  	  m( n );
+  	}
+  	
+    public static void Main()
+    {
+      InfoDelegate d1 = new InfoDelegate( InfoClass.WypiszKwadrat );
+      InfoDelegate d2 = new InfoDelegate( InfoClass.WypiszDwukrotnosc );
+
+      InfoDelegate d3 = d1+d2;
+
+      Oblicz( 11, d3 );    	    	
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Zdarzenia}
+
+Kiedy zachodzi konieczność poinformowania jakiegoś obiektu o zajściu jakiegoś zdarzenia, bardzo przydatny
+okazuje się mechanizm zdarzeń. Obiekt, który jest sprawcą pojawienia się zdarzenia przechowuje listę
+delegatów, którzy zostaną wykonani kiedy zdarzenie ma zostać ogłoszone światu. Każdy inny obiekt, który
+jest zainteresowany otrzymaniem powiadomienia, po prostu dopisuje swojego delegata do listy delegatów
+zdarzenia.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Threading;
+
+namespace DelegaciIZdarzenia
+{
+  public delegate void CZdarzenieDelegate( CZdarzenieEventArgs e );
+
+  // Argumenty zdarzenia
+  public class CZdarzenieEventArgs
+  {
+    public int informacja1;
+    public int informacja2;
+
+    private CZdarzenieEventArgs() {}
+    public  CZdarzenieEventArgs( int Informacja1, int Informacja2 )
+    {
+      informacja1 = Informacja1;
+      informacja2 = Informacja2;
+    }
+  }
+	
+  // Obiekt, który będzie wysyłał zdarzenie
+  public class CObiekt
+  {
+    public event CZdarzenieDelegate Zdarzenie;
+
+    public void ZdarzenieZaszlo( CZdarzenieEventArgs e )
+    {
+      this.Zdarzenie(e);
+    }
+
+    public CObiekt() {}
+  }
+
+  class CMain
+  {
+    // Reakcja na zdarzenie
+    static void Reakcja1( CZdarzenieEventArgs e )
+    {
+      Console.WriteLine( String.Format( "Reakcja 1: {0},{1}", 
+                         e.informacja1, e.informacja2 ) );
+    }
+
+    static void Reakcja2( CZdarzenieEventArgs e )
+    {
+      Console.WriteLine( String.Format( "Reakcja 2: {0},{1}", 
+                         e.informacja1, e.informacja2 ) );
+    }
+
+    public static void Main()
+    {
+      CObiekt obiekt = new CObiekt();
+      obiekt.Zdarzenie += new CZdarzenieDelegate( Reakcja1 );
+      Thread.Sleep(1000);
+      obiekt.ZdarzenieZaszlo( new CZdarzenieEventArgs( 1, 2 ) );
+      Thread.Sleep(1000);
+      obiekt.Zdarzenie += new CZdarzenieDelegate( Reakcja2 );
+      obiekt.ZdarzenieZaszlo( new CZdarzenieEventArgs( 3, 4 ) );
+      Thread.Sleep(1000);
+      Console.WriteLine( "koniec" );
+    }
+  }
+}
+
+C:\Example>example.exe
+Reakcja 1: 1,2
+Reakcja 1: 3,4
+Reakcja 2: 3,4
+koniec
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Uczeń Czarnoksiężnika}
+
+Możliwości C\# w zakresie delegatów i zdarzeń podsumujmy bajką o uczniu czarnoksiężnika\footnote{Oryginał,
+historia pracownika biurowego, dostępny jest pod adresem 
+{\em http://www.sellsbrothers.com/writing/default.aspx?content=delegates.htm}.}. 
+
+{\em
+Dawno dawno temu, za siedmioma górami i siedmioma rzekami, mieszkał potężny Czarnoksiężnik. Czarnoksiężnik miał
+Ucznia, który bardzo chciał kiedyś być tak mądry jak Czarnoksiężnik. Póki co, Czarnoksiężnik wymyślał
+swojemu Uczniowi kolejne, coraz bardziej skomplikowane zadania, a Uczeń skrupulatnie je wykonywał.
+
+Taki układ trwał i trwał, aż w końcu Czarnoksiężnik uznał, że nie musi już cały czas doglądać pracy swojego 
+Ucznia. "Uczniu!" - rzekł któregoś dnia - "Jesteś już na tyle samodzielny, że w czasie kiedy pracujesz mógłbym
+zająć się swoimi sprawami. Po prostu informuj mnie o tym, kiedy skończysz pracę." 
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  class Uczen
+  {
+    public void PoradzSie( Czarnoksieznik czarnoksieznik )
+    {
+      _czarnoksieznik = czarnoksieznik;  	
+    }
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( _czarnoksieznik != null ) _czarnoksieznik.PracaRozpoczeta();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( _czarnoksieznik != null ) _czarnoksieznik.PracaTrwa();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( _czarnoksieznik != null ) 
+      {
+        int ocena = _czarnoksieznik.PracaZakonczona();
+        Console.WriteLine( "Ocena : {0}", ocena );
+      }
+    }
+    private Czarnoksieznik _czarnoksieznik;
+  }
+  
+  class Czarnoksieznik
+  {
+    public void PracaRozpoczeta() { }
+    public void PracaTrwa()       { }
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 2;
+    }
+  }
+  
+  class Uniwersum
+  {
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.PoradzSie( czarnoksieznik );  		
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Wydawało się, że wszystko funkcjonuje jak należy, jednak Uczeń zaczął zastanawiać się co by się
+stało, gdyby nie tylko Czarnoksiężnik, ale ktoś inny był również zainteresowany jego postępami
+(na przykład Uczennica pewnej zaprzyjaźnionej z Czarnoksiężnikiem Wróżki). W pierwszej chwili Uczeń
+trochę się zmartwił, bo wyobraził sobie, że jak dużo różnych metod musiałby znać, aby o swoich postępach
+informować innych. W końcu każdy mógłby chcieć być informowany w trochę inny sposób.
+Trochę się jednak uspokoił kiedy pomyślał o rozdzieleniu listy możliwych powiadomień
+od implementacji tych powiadomień. Zaprojektował więc odpowiedni interfejs.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  interface IUczenPowiadomi
+  {
+    void PracaRozpoczeta();
+    void PracaTrwa();
+    int  PracaZakonczona();
+  }
+  
+  class Uczen
+  {
+    public void PoradzSie( IUczenPowiadomi uczenpowiadomi )
+    {
+      _uczenpowiadomi = uczenpowiadomi;  	
+    }
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( _uczenpowiadomi != null ) _uczenpowiadomi.PracaRozpoczeta();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( _uczenpowiadomi != null ) _uczenpowiadomi.PracaTrwa();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( _uczenpowiadomi != null ) 
+      {
+        int ocena = _uczenpowiadomi.PracaZakonczona();
+        Console.WriteLine( "Ocena : {0}", ocena );
+      }
+    }
+    private IUczenPowiadomi _uczenpowiadomi;
+  }
+  
+  class Czarnoksieznik : IUczenPowiadomi
+  {
+    public void PracaRozpoczeta() { }
+    public void PracaTrwa()       { }
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 3;
+    }
+  }
+  
+  class Uniwersum
+  {
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.PoradzSie( czarnoksieznik );  		
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Przekonanie Czarnoksiężnika do zaimplementowania interfejsu trochę trwało i choć na razie nikt 
+inny nie był implementowaniem jego interfejsu zainteresowany, to Uczeń był z siebie bardzo zadowolony.
+"W końcu teraz" - pomyślał - "każdy zainteresowany będzie mógł łatwo dowiedzieć się jak sobie radzę."
+
+Czarnoksiężnik nie był jednak zachwycony. "Uczniu!" - zagrzmiał - "Dlaczego zadajesz sobie
+tyle trudu informując mnie o rozpoczęciu Twojej pracy i o jej trwaniu? Nie jestem tym zainteresowany.
+Nie dość, że zmuszasz mnie do implementowania odpowiednich metod w interfejsie, 
+to jeszcze tracisz swój czas czekając
+aż zauważę Twoje poczynania. Przecież gdybym akurat gdzieś wybył, to musiałbyś bardzo długo czekać
+na zakończenie wykonania moich metod. Zrób coś z tym, Uczniu!"
+
+Chcąc nie chcąc, zganiony przez swojego Mistrza, Uczeń uznał, 
+że interfejsy są owszem użyteczne w wielu przypadkach, jednak
+niespecjalnie nadają się do implementowania zdarzeń. Pomyślał, że rzeczywiście byłoby właściwie informować
+zainteresowanych tylko o tych wydarzeniach, którymi są oni zainteresowani. Zamiast interfejsu stworzył
+więc delegatów do odpowiednich funkcji.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  delegate void PracaRozpoczeta();
+  delegate void PracaTrwa();
+  delegate int  PracaZakonczona();
+  
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( rozpoczynaprace != null ) rozpoczynaprace();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( pracuje != null ) pracuje();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        int ocena = zakonczylprace();
+        Console.WriteLine( "Ocena : {0}", ocena );
+      }
+    }
+    public PracaRozpoczeta rozpoczynaprace;
+    public PracaTrwa       pracuje;
+    public PracaZakonczona zakonczylprace;
+  }
+  
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.zakonczylprace = new PracaZakonczona( czarnoksieznik.PracaZakonczona );  		
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+W ten sposób Uczeń przestał zajmować Czarnoksiężnika zdarzeniami, którymi tamten nie był zainteresowany.
+W międzyczasie okazało się, że samo Uniwersum zainteresowało się poczynaniami Ucznia i chciało być informowane o
+rozpoczęciu i zakończeniu przez niego pracy.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  delegate void PracaRozpoczeta();
+  delegate void PracaTrwa();
+  delegate int  PracaZakonczona();
+  
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( rozpoczynaprace != null ) rozpoczynaprace();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( pracuje != null ) pracuje();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        int ocena = zakonczylprace();
+        Console.WriteLine( "Ocena : {0}", ocena );
+      }
+    }
+    public PracaRozpoczeta rozpoczynaprace;
+    public PracaTrwa       pracuje;
+    public PracaZakonczona zakonczylprace;
+  }
+  
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {  	
+    static void UczenRozpoczalPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen rozpoczal prace." );      
+    }
+    static int UczenZakoczylPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen zakonczyl prace." );      
+      return 7;
+    }
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.rozpoczynaprace = new PracaRozpoczeta( Uniwersum.UczenRozpoczalPrace );    	
+      uczen.zakonczylprace = new PracaZakonczona( czarnoksieznik.PracaZakonczona );  		
+      uczen.zakonczylprace = new PracaZakonczona( Uniwersum.UczenZakoczylPrace );    	
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Katastrofa! Okazało się, że uczynienie delegatów publicznymi polami w swojej klasie, było błędem Ucznia. 
+Uniwersum, w swoim uniwersalnym wymiarze, przysłoniło powiadomienie o zakończeniu pracy skierowane 
+do Czarnoksiężnika swoim własnym. 
+
+Uczeń postanowił, że musi coś na to poradzić. Zdał sobie sprawę, że potrzebuje jakiegoś
+mechanizmu rejestrowania i wyrejestrowywania delegatów, tak aby słuchacze zdarzeń mogli 
+dodawać i usuwać swoje funkcje do powiadomień, ale nie mogli zniszczyć całej listy funkcji powiadomień.
+Uczeń skorzystał więc ze {\em zdarzeń}, o których wiedział że automatycznie tworzą odpowiednie propercje
+związane z obsługą delegatów, tak że słuchacze mogli być dodawani i usuwani za pomocą operatorów
++= i -=.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  delegate void PracaRozpoczeta();
+  delegate void PracaTrwa();
+  delegate int  PracaZakonczona();
+  
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( rozpoczynaprace != null ) rozpoczynaprace();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( pracuje != null ) pracuje();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        int ocena = zakonczylprace();
+        Console.WriteLine( "Ocena : {0}", ocena );
+      }
+    }
+    public event PracaRozpoczeta rozpoczynaprace;
+    public event PracaTrwa       pracuje;
+    public event PracaZakonczona zakonczylprace;
+  }
+  
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {  	
+    static void UczenRozpoczalPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen rozpoczal prace." );      
+    }
+    static int UczenZakoczylPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen zakonczyl prace." );      
+      return 7;
+    }
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.rozpoczynaprace += new PracaRozpoczeta( Uniwersum.UczenRozpoczalPrace );    	
+      uczen.zakonczylprace += new PracaZakonczona( czarnoksieznik.PracaZakonczona );  		
+      uczen.zakonczylprace += new PracaZakonczona( Uniwersum.UczenZakoczylPrace );    	
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Po tym wszystkim Uczeń odetchnął z ulgą. W elegancki sposób poradził sobie z zaspokojeniem
+potrzeb wszystkich zainteresowanych jego postępami, a sam nie musiał się specjalnie
+przejmować wewnętrznymi implementacjami ich metod. Zauważył jedynie, że choć zarówno Czarnoksiężnik jak i 
+Uniwersum oceniają jego poczynania, to do niego dociera tylko jedna ocena. Uczeń chciał zaś znać
+oceny, które wystawiają mu wszyscy zainteresowani zakończeniem przez niego pracy. 
+Na szczęście był w stanie przeglądać listę słuchaczy zdarzenia i zbierać wyniki od wszystkich
+po kolei.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  delegate void PracaRozpoczeta();
+  delegate void PracaTrwa();
+  delegate int  PracaZakonczona();
+  
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( rozpoczynaprace != null ) rozpoczynaprace();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( pracuje != null ) pracuje();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        foreach ( PracaZakonczona pz in zakonczylprace.GetInvocationList() )      	
+        {
+          int ocena = pz();
+          Console.WriteLine( "Ocena : {0}", ocena );
+        }
+      }
+    }
+    public event PracaRozpoczeta rozpoczynaprace;
+    public event PracaTrwa       pracuje;
+    public event PracaZakonczona zakonczylprace;
+  }
+  
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {  	
+    static void UczenRozpoczalPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen rozpoczal prace." );      
+    }
+    static int UczenZakoczylPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen zakonczyl prace." );      
+      return 7;
+    }
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.rozpoczynaprace += new PracaRozpoczeta( Uniwersum.UczenRozpoczalPrace );    	
+      uczen.zakonczylprace += new PracaZakonczona( czarnoksieznik.PracaZakonczona );  		
+      uczen.zakonczylprace += new PracaZakonczona( Uniwersum.UczenZakoczylPrace );    	
+      uczen.Pracuj();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Uczeń usiadł na chwilę zadowolony ze swoich pomysłów. Niestety, okazało się że zarówno Uniwersum jak
+i Czarnoksiężnik mają mnóstwo własnych zajęć i zauważenie postępów ucznia zajmuje im coraz
+więcej czasu.
+
+\begin{scriptsize}
+\begin{verbatim}
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Thread.Sleep( 5000 );
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {  	
+    static int UczenZakoczylPrace()
+    {
+      Thread.Sleep( 7000 );
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen zakonczyl prace." );      
+      return 7;
+    }
+    ...
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Dla Ucznia oznaczało to, że zamiast pilnie pracować musi po wywołaniu słuchacza zdarzenia czekać
+w nieskończoność na jego zakończenie. Postanowił więc chwilowo przestać przejmować się ocenami, za to
+wołać odpowiednich słuchaczy asynchronicznie.
+
+\begin{scriptsize}
+\begin{verbatim}
+    public void Pracuj()
+    {
+      ...
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        foreach ( PracaZakonczona pz in zakonczylprace.GetInvocationList() )      	
+        {
+          pz.BeginInvoke( null, null );        	
+        }
+      }
+    }
+\end{verbatim}
+\end{scriptsize}
+
+Dzięki temu Uczeń mógł natychmiast po wywołaniu powiadomienia zająć się z powrotem swoimi sprawami. 
+Brakowało mu jednak tego, że ktoś docenia jego pracę. 
+Postanowił więc nadal wołać słuchaczy asynchronicznie i 
+co jakiś czas sprawdzać, czy jego praca jest już oceniona.
+
+\begin{scriptsize}
+\begin{verbatim}
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      ...   	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        foreach ( PracaZakonczona pz in zakonczylprace.GetInvocationList() )      	
+        {
+          IAsyncResult res = pz.BeginInvoke( null, null );        	
+          while ( !res.IsCompleted ) Thread.Sleep(1);
+          int ocena = pz.EndInvoke(res);
+          Console.WriteLine( "Ocena : {0}", ocena );                   	
+        }
+      }
+    }
+\end{verbatim}
+\end{scriptsize}
+
+W ten sposób, niestety, Uczeń co prawda mógł kontynuować swoją pracę natychmiast po
+zawołaniu funkcji-słuchacza, jednak w osobnym wątku co chwila
+zaglądał przez ramię czy zawołany słuchacz zdarzenia już zakończył pracę. Uczeń nie był z tej konieczności
+zadowolony, postanowił więc zatrudnić własnego delegata który powiadamiałby go o zakończeniu pracy przez 
+asynchronicznego delegata.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Threading;
+
+namespace UczenCzarnoksieznika
+{	
+  delegate void PracaRozpoczeta();
+  delegate void PracaTrwa();
+  delegate int  PracaZakonczona();
+  
+  class Uczen
+  {
+    public void Pracuj()
+    {
+      Console.WriteLine( "Uczen: rozpoczynam prace." );
+      if ( rozpoczynaprace != null ) rozpoczynaprace();
+  		
+      Console.WriteLine( "Uczen: pracuje." );
+      if ( pracuje != null ) pracuje();
+  	  
+      Console.WriteLine( "Koncze prace." );
+      if ( zakonczylprace != null ) 
+      {
+        foreach ( PracaZakonczona pz in zakonczylprace.GetInvocationList() )      	
+        {
+          pz.BeginInvoke( new AsyncCallback(OcenPrace), pz );
+        }
+      }
+    }
+    
+    private void OcenPrace( IAsyncResult res )
+    {
+      PracaZakonczona pz = (PracaZakonczona)res.AsyncState;
+      int ocena = pz.EndInvoke(res);
+      Console.WriteLine( "Ocena : {0}", ocena );                   	          	
+    }
+    
+    public event PracaRozpoczeta rozpoczynaprace;
+    public event PracaTrwa       pracuje;
+    public event PracaZakonczona zakonczylprace;
+  }
+  
+  class Czarnoksieznik 
+  {
+    public int PracaZakonczona() 
+    {
+      Thread.Sleep( 5000 );
+      Console.WriteLine( "Ach, znakomicie!" );
+      return 4;
+    }
+  }
+  
+  class Uniwersum
+  {  	
+    static void UczenRozpoczalPrace()
+    {
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen rozpoczal prace." );      
+    }
+    static int UczenZakoczylPrace()
+    {
+      Thread.Sleep( 7000 );
+      Console.WriteLine( "Uniwersum zauwaza, ze Uczen zakonczyl prace." );      
+      return 7;
+    }
+    public static void Main()
+    {
+      Uczen uczen = new Uczen();
+      Czarnoksieznik czarnoksieznik = new Czarnoksieznik();
+  		
+      uczen.rozpoczynaprace += new PracaRozpoczeta( Uniwersum.UczenRozpoczalPrace );    	
+      uczen.zakonczylprace += new PracaZakonczona( czarnoksieznik.PracaZakonczona );  		
+      uczen.zakonczylprace += new PracaZakonczona( Uniwersum.UczenZakoczylPrace );    	
+      uczen.Pracuj();
+      Thread.Sleep( 20000 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Teraz wszyscy byli zadowoleni. Czarnoksiężnik i Uniwersum byli powiadamiani o zdarzeniach, które ich
+interesowały. Uczeń mógł powiadamiać wszystkich zainteresowanych, a sam nie musiał czekać na zakończenie 
+metod implementujących powiadomienia. Mógł za to asynchronicznie zbierać wyniki tych metod.
+
+Zmęczony całym dniem ciężkiej pracy, Uczeń mógł w końcu iść spać...
+}
+

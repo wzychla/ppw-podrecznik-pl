@@ -1,0 +1,366 @@
+﻿\subsection{Konwersje między typami}
+\label{KonwersjeMiedzyTypami}
+
+Możliwość przypisania wprost wartości jednego 
+typu do wartości innego typu zależy tylko od tego, czy zdefiniowano bezpośredni operator
+konwersji między tymi typami. Najczęściej taka próba nie powiedzie się, bowiem operatory
+konwersji zdefiniowano tylko dla wybranych par typów.
+
+Zobaczmy jak kompilator reaguje na próbę wymuszenia
+konwersji między wartościami różnych typów gdy operator konwersji bezpośredniej istnieje tylko
+dla konwersji w jedną stronę.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      int  i=1;
+      long j=1;
+
+      j=i;
+      i=j;
+    }
+  }
+}
+
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+example.cs(14,6): error CS0029: Cannot implicitly convert type 'long' to 'int'
+\end{verbatim}
+\end{scriptsize}
+
+Wszystko się zgadza - konwersja z wartości 32-bitowej do wartości 64-bitowej jest legalna (tak została
+określona) bowiem nie powoduje utraty danych. Konwersja odwrotna może prowadzić do utraty danych i
+choć kompilator taką konwersję dopuści, programista musi swój zamiar potwierdzić:
+
+\begin{scriptsize}
+\begin{verbatim}
+j=i;
+i=(int)j;
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Typy wbudowane}
+
+Wartość każdego typu można przekształcić do wartości typu {\em string} za pomocą 
+metody {\bf ToString()}. Wbudowane klasy arytmetyczne mają statyczne metody {\em Parse}, 
+służące do konwersji napisów.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Main()
+    {
+       string sI = "45";
+       string sF = "123,5";
+
+       int    i = int.Parse( sI );
+       float  f = float.Parse( sF );
+
+       Console.WriteLine( "{0}; {1}", i, f );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Bardziej ogólne podejście możliwe jest dzięki konwersjom między typami wbudowanymi,
+dostępnymi jako statyczne metody klasy {\em System.Convert}. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {    
+    public static void Main()
+    {
+       string sI = "45";
+       string sF = "123,5";
+
+       int    i = Convert.ToInt32( sI );
+       double f = Convert.ToDouble( sF );
+
+       Console.WriteLine( "{0}; {1}", i, f );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Typy własne}
+
+Możliwe są dwa rodzaje konwersji wprost (przez przypisanie):
+\begin{description}
+\item [konwersja jawna] Z konwersją jawną mamy do czynienia wtedy, kiedy wymiana wartości
+między dwoma typami wymaga jawnego rzutowania, na przykład:
+\begin{scriptsize}
+\begin{verbatim}
+double d = 1.5;
+int    i = (int)d;
+\end{verbatim}
+\end{scriptsize}
+\item [konwersja niejawna] Z konwersją niejawną mamy do czynienia wtedy, kiedy wymiana wartości
+między dwoma typami nie wymaga jawnego rzutowania, na przykład:
+\begin{scriptsize}
+\begin{verbatim}
+int    i = 1;
+double d = i;
+\end{verbatim}
+\end{scriptsize}
+\end{description}
+
+W przypadku typów wbudowanych rodzaje konwersji są już zdeterminowane, jednak w przypadku własnych klas 
+programista staje przed wyborem rodzajów konwersji między swoim typem a innymi typami.
+Wybór odpowiedniego typu konwersji zależy od tego czy podczas konwersji może dojść do utraty danych, czy nie.
+Wyobraźmy sobie sytuację, w której typ A jest bardziej pojemny informacyjnie niż typ B. Wobec tego 
+konwersja danej typu B do danej typu A może być niejawna, ponieważ nie istnieje ryzyko utraty informacji.
+Konwersja w odwrotną stronę powinna być jawna, aby klient klasy był świadomy możliwej utraty informacji.
+
+O tym, czy konwersja jest dokonywana jawnie, czy niejawnie, decyduje
+definicja operatora konwersji. Operatory konwersji definiuje się jako jawne przez użycie kwalifikatora
+{\em explicit} lub niejawne {\em implicit}. 
+
+Jako przykład rozważmy strukturę opisującą liczby rzymskie. Konwersja liczby rzymskiej do
+typu {\em int} może być niejawna, bowiem {\em int} jest bardziej pojemny informacyjnie niż zbiór
+wszystkich liczb rzymskich. Konwersja odwrotna powinna być jawna.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+
+namespace Example
+{
+  public class CMain
+  {    
+    struct RomanNumeral
+    {
+      readonly string[] literals;
+      int value;
+
+      public RomanNumeral( int value )
+      {
+        if ( value > 3999 ) throw new ArgumentOutOfRangeException();
+
+        literals = new string[] { "I", "V", "X", "L", 
+                                  "C", "D", "M" };        
+        this.value = value;
+      }
+
+      public static explicit operator RomanNumeral( int value )
+      {
+        return new RomanNumeral( value );
+      }
+
+      public static implicit operator int(RomanNumeral roman)
+      {
+         return roman.value;
+      }
+
+      string BuildRomanString( int index, int v )
+      {  
+         if ( v <= 0 ) return String.Empty;       
+
+         string  s = String.Empty;
+         int digit = v%10;
+         int j;
+
+         if ( digit == 4 ) 
+           s = literals[index]+literals[index+1]+s;
+         else if ( digit == 9 ) 
+           s = literals[index]+literals[index+2]+s;
+         else if ( digit >= 5 && digit <= 8 )         
+         {
+            s = literals[ index+1 ];
+            digit -= 5;
+         }
+         if ( digit >= 1 && digit <=3 )
+         {
+            for ( j=0; j<digit; j++ )
+              s = s+literals[ index ];
+         } 
+
+         return BuildRomanString( index+2, v/10 )+s;
+      }
+    
+      public override string ToString()
+      {
+        string s = String.Empty;
+        int tVal = value;
+
+        return BuildRomanString( 0, value );
+      }
+	}
+
+    public static void Main()
+    {
+      int          i = 2003;
+      RomanNumeral r = (RomanNumeral)i;
+      int          j = r;
+
+      Console.WriteLine( "{0}, {1}, {2}", i, r, j );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Dziedziczenie a konwersje}
+
+Jak w każdym obiektowym języku programowania, obiekt klasy potomnej można zawsze
+niejawnie zrzutować na obiekt klasy macierzystej. W drugą stronę możliwa jest tylko
+konwersja jawna, jednak uda się ona tylko wtedy, kiedy dany obiekt jest rzeczywiście
+odpowiedniego typu.
+
+Oprócz rzutowania statycznego, między typami referencyjnymi możliwe jest również
+rzutowanie dynamiczne za pomocą operatora {\em as}. Jeśli wartość rzutowania dynamicznego
+równa jest {\em null}, to znaczy że rzutowanie nie powiodło się. Rzutowanie dynamiczne
+pozwala uniknąć wyjątku, który byłby wyrzucony przez rzutowanie statyczne przy błędzie rzutowania,
+na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    static void f1( object o ) 
+    {
+      // możliwy wyjątek!
+      Hashtable h = (Hashtable)o; 
+    }
+    static void f2( object o ) 
+    {
+      // rzutowanie może nie udać się
+      // ale nie będzie wyjątku
+      Hashtable h = o as Hashtable; 
+      if ( h == null )
+      {
+      }
+    }
+    public static void Main()
+    {
+       ArrayList a = new ArrayList();
+
+       f1( a );
+       f2( a );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Wyjątki}
+
+Wyjątki są mechanizmem jaki nowoczesne języki programowania wykorzystują w celu zwiększenia
+produktywności i czytelności kodu. Projektanci platformy \NET{} przyjęli, że biblioteki systemowe
+informują kod użytkownika o błędach za pomocą wyjątków i zachęcają użytkowników do zerwania z przyzwyczajeniami,
+znanymi na przykład z C, polegającymi na przekazywaniu informacji o błędach przez wartości funkcji.
+
+Wyjątki przechwytuje się za pomocą składni
+
+\begin{scriptsize}
+\begin{verbatim}
+try
+{
+  // blok w którym przechwytywane będą wyjątki
+}
+catch ( TypWyjątku wyjątek )
+{
+  // obsługa przechwyconego wyjątku
+}
+finally 
+{
+  // kod wykonywany zawsze na zakończenie bloku
+}
+\end{verbatim}
+\end{scriptsize}
+
+Wyjątki {\em wyrzuca} się za pomocą składni
+
+\begin{scriptsize}
+\begin{verbatim}
+throw <obiekt opisujący wyjątek>
+\end{verbatim}
+\end{scriptsize}
+
+Istnieją trzy podstawowe strategie dotyczące wyjątków. Wybór odpowiedniej strategii należy do programisty:
+
+\begin{description}
+\item [brak obsługi wyjątków] Kod funkcji nie zawiera obsługi wyjątków
+\item [informacja dla funkcji wołającej] Kod klauzuli catch wyrzuca przechwycony wyjątek 
+\item [pełne obsłużenie wyjątku] Kod klauzuli catch zawiera pełny kod obsługi wyjątku i nie informuje funkcji
+wołającej o problemach
+\end{description}
+
+Wyjątki są obiektami klas, które dziedziczą z klasy {\em Exception}. Klasa ta może być przeciążona, choć
+już w podstawowej wersji zawiera sposo użytecznych informacji, takich jak informacja diagnostyczna czy
+ślad stosu, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    public static void f()
+    {
+      try
+      {
+        int i = 1-1;
+        int j = 1/i; 
+      }
+      catch ( Exception ex )
+      {
+        Console.WriteLine( "Informacja o błędzie:\r\n{0}\r\nSlad stosu:\r\n{1}", 
+                           ex.Message, ex.StackTrace );
+      }
+    }
+    public static void Main()
+    {
+      f();
+    }
+  }
+}
+
+C:\Example>csc.exe example.cs /debug
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+
+C:\Example>example.exe
+Informacja o błędzie:
+Attempted to divide by zero.
+Slad stosu:
+   at Example.CMain.f() in C:\000\example.cs:line 14
+\end{verbatim}
+\end{scriptsize}

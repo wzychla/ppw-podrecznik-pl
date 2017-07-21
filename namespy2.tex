@@ -1,0 +1,366 @@
+﻿\subsection{Biblioteka funkcji matematycznych}
+
+Funkcje matematyczne zostały w C\# umieszczone jako statyczne w klasie {\tt System.Math}.
+Programista znajdzie tam takie funkcje, jak m.in.: Abs, Asin, Atan, Cos, Cosh, E (stała), 
+Exp, Floor, Log, Max, Min, PI (stała), Pow, Sign, Sin, Sinh, Tan, Sqrt.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Console.WriteLine( "E  = {0}", Math.E );
+      Console.WriteLine( "Pi = {0}", Math.PI );
+
+      Console.WriteLine( "E^PI  = {0}", Math.Pow( Math.E, Math.PI ) );
+      Console.WriteLine( "Pi^E  = {0}", Math.Pow( Math.PI, Math.E ) );
+    }
+  }
+}
+
+C:\Example>example.exe
+E  = 2,71828182845905
+Pi = 3,14159265358979
+E^PI  = 23,1406926327793
+Pi^E  = 22,459157718361
+\end{verbatim}
+\end{scriptsize}
+
+Podobnie łatwo dzięki klasie {\tt Random} można uzyskać liczby losowe. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Random r = new Random();
+
+      Console.WriteLine( "Sekwencja losowych liczb całkowitych: " );
+      for ( int i=0; i<10; i++ )
+        Console.WriteLine( r.Next() );
+
+      Console.WriteLine( "Sekwencja losowych liczb zmiennoprzecinkowych: " );
+      for ( int i=0; i<10; i++ )
+        Console.WriteLine( r.NextDouble() );
+    }
+  }
+}
+
+C:\Example>example.exe
+Sekwencja losowych liczb całkowitych:
+1537211907
+1960381545
+1107103792
+1638000156
+206550390
+4349299
+1902247774
+493693260
+357003656
+1461388247
+Sekwencja losowych liczb zmiennoprzecinkowych:
+0,359765542372952
+0,615490057792277
+0,185565924358352
+0,0885926261956769
+0,67311383582331
+0,495275298829784
+0,700976026105218
+0,496796116464211
+0,58237144610955
+0,495158822506274
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Biblioteki wejścia/wyjścia}
+
+Tyle ile różnych języków - tyle różnych podejść do zagadnienia obsługi wejścia / wyjścia. 
+Projektanci języka stają przed trudnym zadaniem zaprojektowania przystępnego iterfejsu programowania
+do obsługi różnego rodzaju obiektów (pliki, konsola, połączenia sieciowe itd.) i różnego rodzaju 
+rodzajów przekazywania danych (tekstowy, binarny, buforowany, dostęp sekwencyjny i swobodny itd.).
+
+\subsubsection{Struktura systemu plików}
+
+Zanim przejdziemy do przekazywania danych z i do strumieni reprezentujących obiekty wejścia / wyjścia, 
+zajmiemy się operacjami na strukturze systemu plików. Biblioteka udostępnia tu 3 klasy: {\bf File}, 
+{\bf Directory} i {\bf Path}. Żadna z tych klas nie pozwala tworzyć swojej instancji, udostępniają 
+one tylko statyczne metody, z których korzysta programista.
+
+Klasa {\bf Directory} służy do bezpośrednich operacji na plikach i katalogach. Udostępnia m.in.
+następujące metody:
+\begin{description}
+\item [CreateDirectory] Tworzenie katalogu.
+\item [Delete] Usuwanie katalogu.
+\item [Exists] Sprawdzanie czy katalog istnieje.
+\item [GetCurrentDirectory] Zwraca bieżący katalog.
+\item [GetFiles] Zwraca listę nazw plików w katalogu.
+\item [GetDirectories] Zwraca listę podkatalogów w katalogu.
+\item [GetFileSystemEntries] Zwraca listę wszystkich elementów w katalogu.
+\item [GetParent] Zwraca nazwę katalogu poziom wyżej niż wskazany.
+\item [GetLogicalDrives] Zwraca listę dysków logicznych w systemie.
+\item [Move] Przesuwa katalog w systemie plików.
+\item [SetCurrentDirectory] Ustawia bieżący katalog.
+\end{description}
+
+Klasa {\bf File} udostępnia metody do operacji na plikach, m.in.:
+\begin{description}
+\item [Copy] Kopiowanie plików.
+\item [Create] Tworzenie nowych plików.
+\item [Delete] Usuwanie plików. 
+\item [Exists] Sprawdzanie czy plik istnieje.
+\item [GetAttributes] Zwraca atrybuty pliku.
+\item [Open] Otwiera plik.
+\item [SetAttributes] Ustawia atrybuty pliku.
+\end{description}
+
+Klasa {\bf Path} udostępnia metody do obsługi nazw plików w systemie plików, m.in.:
+\begin{description}
+\item [ChangeExtension] Zmiana rozszerzenia nazwy pliku.
+\item [GetDirectoryName] Część określająca nazwę katalogu w ścieżce.
+\item [GetExtension] Rozszerzenie pliku.
+\item [GetFileName] Nazwa pliku (bez ścieżki).
+\item [GetFileNameWithoutExtension] Nazwa pliku (bez ścieżki i rozszerzenia).
+\item [GetFullPath] Pełna nazwa pliku.
+\item [GetTempName] Nazwa tymczasowego pliku.
+\item [DirectorySeparatorChar] Separator katalogów w nazwach plików (w Windows "\").
+\item [PathSeparator] Separator ścieżek w nazwach plików (w Windows ";").
+\item [VolumeSeparatorChar] Separator woluminu w nazwach plików (w Windows ":")
+\end{description}
+
+Dodatkową, usługową funkcję spełniają dwie klasy, {\bf FileInfo} i {\bf DirectoryInfo}. Za pomocą
+obiektów tych klas można uzyskać szczegółowe informacje na temat plików i folderów.
+
+Przykład prostego programu:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       string[] fileNames = 
+         Directory.GetFiles( Directory.GetCurrentDirectory(), "*.exe" );
+       foreach ( string s in fileNames )
+       {
+         FileInfo fi = new FileInfo( s );
+
+         Console.WriteLine( fi.FullName );
+         Console.WriteLine( " rozmiar\t{0}", fi.Length );
+         Console.WriteLine( " utworzony\t{0}", fi.CreationTime );
+         Console.WriteLine( " atrybuty\t{0}", fi.Attributes );
+       }
+    }
+  }
+}
+
+C:\Example>example.exe
+C:\Example\example.exe
+ rozmiar        3584
+ utworzony      2003-03-22 19:47:55
+ atrybuty       Archive
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Obsługa danych w strumieniach}
+
+Interfejsy nowoczesnych języków programowania zwykle używają abstrakcyjnej reprezentacji
+danych przesyłanych do i z urządzeń wejścia / wyjścia w postaci {\em strumieni}. Udaną próbę
+zbudowania jednolitego interfejsu strumieni podjęto przy projektowaniu C++.
+
+\begin{table}[ht]
+	\begin{center}
+
+	\framebox[12cm]{MemoryStream, FileStream, NetworkStream}  \\ $\bigtriangledown$ \\
+	\framebox[12cm]{CryptoStream, BufferedStream}             \\ $\bigtriangledown$ \\
+	\framebox[12cm]{StreamReader, StreamWriter, BinaryReader, BinaryWriter}  
+
+	\end{center}
+\caption{Składanie różnych funkcji strumieni} 
+\label{tab:Streams}
+\end{table}
+
+W C\# istnieje klasa {\em Stream}, która, oprócz udostępniania kilku prostych metod, spełnia
+funkcję klasy bazowej dla specjalizowanych klas do obsługi różnych strumieni:
+
+\begin{description}
+\item [MemoryStream] dostarcza mechanizmów do operacji na danych w pamięci
+\item [FileStream] dostarcza mechanizmów do operacji na plikach
+\item [IsolatedStorageFileStream] wirtualny system plików z kontrolą dostępu
+\item [NetworkStream] dostarcza mechanizmów do operacji sieciowych
+\end{description}
+
+Dodatkowe strumienie mogą stanowić warstwę pośrednią w komunikacji z wyżej wymienionymi
+strumieniami:
+
+\begin{description}
+\item [CryptoStream] pozwala szyfrować i deszyfrować dane przesyłane z i do strumienia
+\item [BufferedStream] pozwala przyspieszyć dostęp do strumienia przez wysyłanie większych porcji danych
+\end{description}
+
+W zależności od tego jakiego rodzaju dostępu do strumienia oczekuje programista, może on wybierać między:
+
+\begin{description}
+\item [StreamReader, StreamWriter] pozwala na dostęp do strumieni traktowanych jako napisy
+\item [BinaryReader, BinaryWriter] pozwala na dostęp do strumieni traktowanych jak bajty
+\end{description}
+
+Te trzy rodzaje funkcji tworzą niejako trzy niezależne warstwy obsługi strumieni, zaś
+programista może dowolnie składać funkcje z kolejnych warstw. Oznacza to, że tak naprawdę
+istnieje kilkadziesiąt różnych możliwości ich składania (tabela \ref{tab:Streams}).
+
+Warstwa pierwsza udostępnia najprostszy interfejs, w którym do strumienia można kierować i czytać
+tylko pojedyńcze bajty. Warstwa druga umożliwia nałożenie szyfrowania lub buforowania na strumień.
+Warstwa trzecia pozwala na wysyłanie do strumienia całych napisów, liczb i innych obiektów.
+
+Spróbujmy więc na przykład utworzyć strumień plikowy, na niego nałożyć funkcję zapisu tekstu
+w Unicode i zapisać do pliku jakiś tekst. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+using System.IO;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      FileStream fs = new FileStream( "plik.txt", FileMode.Create );
+      StreamWriter sw = new StreamWriter( fs, Encoding.Unicode );
+
+      sw.WriteLine( "Chrząsz brzmi w Żyrardówku" );
+      
+      sw.Close();
+      fs.Close();
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Szyfrowanie strumieni w locie}
+
+Biblioteka wejścia / wyjścia .NET pozwala na umieszczenie strumienia szyfrującego 
+między strumieniem, a obiektem pozwalającym czytać bądź pisać dane tego strumienia. 
+Jest to naprawdę proste i wygodne - z perspektywy programisty zachowanie się strumienia
+jest nadal takie samo, mimo to dane trafiają do strumienia po przejściu przez warstwę szyfrującą.
+
+\begin{center}
+$$\begin{array}{ll}
+\mbox{Typ} & \mbox{Nazwa}  \\
+\hline 
+\mbox{Symetryczny} & \mbox{DES} \\
+\mbox{Symetryczny} & \mbox{TripleDES} \\
+\mbox{Symetryczny} & \mbox{RC2} \\
+\mbox{Symetryczny} & \mbox{Rijndael} \\
+\mbox{Asymetryczny} & \mbox{DSA} \\
+\mbox{Asymetryczny} & \mbox{RSA} 
+\end{array}$$
+\end{center}
+
+Udostępniono kilka znanych protokołów kryptograficznych: {\em symetryczne} używają tego samego
+klucza do szyfrowania i deszyfrowania, podczas gdy {\em asymetryczne} szyfrują za pomocą kluczy
+publicznych, zaś do odszyfrowania potrzebują kluczy prywatnych. Biblioteka krytpograficzna
+udostępnia metody do wspomagania tworzenia kluczy dla obu typów protokołów.
+
+W przykładzie najpierw utworzymy strumień do zapisu danych z pośrednim strumieniem 
+szyfrującym, a następnie zdekodujemy tekst z pliku. Gdyby podczas próby dekodowania użyto
+niepoprawnego hasła, to oczywiście operacja nie powiodłaby się. Oczywiście zawartość pliku z
+zaszyfrowaną informacją w żaden sposób nie nadaje się do odczytania bez zdeszyfrowania.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Security.Cryptography; 
+using System.Text;
+
+namespace Example
+{
+  public class CExample 
+  {
+
+    static string CzytajHaslo()
+    {
+      Console.Write( "podaj haslo do szyfrowania: " );
+      string passwd = Console.ReadLine();  
+      if ( passwd.Length != 8 ) 
+      {
+        Console.WriteLine( "Haslo musi miec 8 znakow" );
+        Environment.Exit(0);
+      }
+      return passwd;
+    }
+
+    public static void Main(string[] args)
+    {
+      string password    = CzytajHaslo();       
+      UnicodeEncoding UE = new UnicodeEncoding();
+      byte[] key         = UE.GetBytes(password);
+
+      // zapis zaszyfrowanych danych
+      // cs jest strumieniem pośrednim
+      FileStream      fs = new FileStream( "plik.txt", FileMode.Create );
+      RijndaelManaged RMCrypto = new RijndaelManaged();
+      CryptoStream    cs = new CryptoStream(fs,
+                           RMCrypto.CreateEncryptor(key, key),   
+                           CryptoStreamMode.Write);      
+      StreamWriter sw = new StreamWriter( cs, Encoding.Unicode );  
+
+      sw.WriteLine( "Chrząsz brzmi w Żyrardówku" );      
+      sw.Close();
+
+      // odczyt zaszyfrowanych danych
+      // gs jest strumieniem pośrednim 
+      FileStream      gs = new FileStream( "plik.txt", FileMode.Open );
+      RijndaelManaged RMCryptp = new RijndaelManaged();
+      CryptoStream    ds = new CryptoStream(gs,
+                           RMCryptp.CreateDecryptor(key, key),   
+                           CryptoStreamMode.Read);      
+      StreamReader    sq = new StreamReader( ds, Encoding.Unicode );  
+ 
+      Console.WriteLine( sq.ReadLine() );
+      sq.Close(); 
+    }
+  }
+}
+
+C:\Example>example.exe
+podaj haslo do szyfrowania: qwertyui
+Chrząsz brzmi w Żyrardówku
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Strumienie konsoli}
+
+Obiekt reprezentujący konsolę dysponuje informacją o strumieniach wejścia, wyjścia i błędu. Obiekty te
+({\tt Console.In, Console.Out, Console.Error}) są strumieniami typów {\bf TextReader} i
+{\bf TextWriter} (klasy bazowe dla odpowiednio StreamReader, StringReader i StreamWriter, StringWriter).
+Oznacza to, że strumieni tych można użyć w każdym kontekście, w którym używa się strumieni pochodnych.
+
+Strumienie te mogą być przekierowane za pomocą metod {\bf SetIn}, {\bf SetOut} i {\bf SetError}.
+

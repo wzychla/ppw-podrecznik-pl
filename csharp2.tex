@@ -1,0 +1,287 @@
+﻿\subsection{Struktura kodu, operatory}
+
+Kod C\#-owy najbardziej przypomina kod Javy. Wszystkie podstawowe konstrukcje językowe takie jak
+deklaracje zmiennych, operatory, instrukcje warunkowe czy pętle działają dokładnie tak jak w Javie.
+Dzięki temu programiści znający C, C++ czy Javę bardzo szybko odnajdą się w nowym języku.
+
+Przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      int i, j=0, n;
+
+      Console.Write( "Podaj liczbe naturalna: " );
+      n = int.Parse( Console.ReadLine() );
+
+      for ( i=1; i<n; i++ )
+        j+=i;   
+
+      Console.WriteLine( "Suma wynosi " + j.ToString() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kompilator dość restrykcyjnie traktuje powszechnie popełniane przez programistów pomyłki, zwykle
+sygnalizując błąd tam, gdzie kompilator C czy C++ poprzestaje na ostrzeżeniu. Na przykład w powyższym
+przykładzie deklaracja
+
+\begin{scriptsize}
+\begin{verbatim}
+int i, j, n; // brak przypisania j=0
+\end{verbatim}
+\end{scriptsize}
+
+spowoduje błąd kompilacji
+
+\begin{scriptsize}
+\begin{verbatim}
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+example.cs(17,9): error CS0165: Use of unassigned local variable 'j'
+\end{verbatim}
+\end{scriptsize}
+
+W przeciwieństwie do C, kompilator C\# nie pozwala redefiniować zmiennych na kolejnych poziomach
+zagnieżdżenia kodu, uznano bowiem że jest to źródłem zbyt dużej ilości niezamierzonych pomyłek.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+class Example
+{
+  public static void Main()
+  {
+    bool b=true;
+    int  i;
+
+    while ( b )
+    {
+      int i;
+    }
+  }
+}
+
+example.cs(12,8): error CS0136: A local variable named 'i' cannot be declared in
+        this scope because it would give a different meaning to 'i', which is
+        already used in a 'parent or current' scope to denote something else
+\end{verbatim}
+\end{scriptsize}
+
+Niespodziewanie, lecz konsekwentnie, taka konstrukcja nie jest możliwa również wtedy, gdy
+deklaracja bardziej zagnieżdżona {\em poprzedza} deklarację mniej zagnieżdżoną.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+class Example
+{
+  public static void Main()
+  {
+    bool b=true;
+    while ( b )
+    {
+      int i;
+    }
+    int  i;
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{System typów, model obiektowy}
+
+W obiektowych językach programowania zwykle funkcjonują dwie rozłączne klasy bytów, na których można
+operować: typy proste (liczby całkowite, zmiennoprzecinkowe, napisy) oraz typy złożone (klasy). Istnienie
+dwóch rozłącznych światów rodzi mnóstwo problemów i niejednokrotnie zmusza programistę do pisania
+"brzydkiego" kodu. Na przykład w sytuacji, kiedy potrzebna jest funkcja operująca na wartości dowolnego
+typu, istnienie typów prostych zmusza programistę do przeciążania tej funkcji tyle razy ile różnych
+jej wariantów będzie potrzebował. W C++ pewnym sposobem na przezwyciężanie takich trudności są 
+szablony, jednak nie istnieje sposób na stosowanie szablonu do typu nieznanego kompilatorowi podczas kompilacji.
+Taka cecha języka sprawia, że trudno nazwać C++ językiem w pełni obiektowym. Nawet Java dzieli typy
+na proste i złożone, bowiem stosowanie typów prostych znacząco poprawia wydajność kodu.
+
+Model obiektowy C\# to model z pojedyńczym dziedziczeniem\footnote{Sposobem na pokonanie
+ograniczeń pojedyńczego dziedziczenia są tzw. {\em interfejsy}.}. Zakłada się istnienie jednej 
+wspólnej klasy {\em object} dla wszystkich obiektów. Choć nadal istnieje podział na typy proste i typy
+złożone, to z punktu widzenia systemu typów wszystko jest obiektem, co więcej typ obiektu jest możliwy do
+odzyskania w trakcie działania programu.
+
+Dzięki takiej konstrukcji systemu typów możliwe jest zdefiniowanie pewnej funkcjonalności już na poziomie
+klasy {\em object}. Ta funkcjonalność jest dziedziczona na klasy potomne. Najważniejsze dwie metody
+wirtualne zdefiniowane w klasie {\em object} to:
+
+\begin{description}
+\item[string ToString()] Domyślnie ta metoda zwraca nazwę typu obiektu. Przeciążona może zwracać opis
+zawartości obiektu w postaci przyjaznej dla użytkownika.
+\item[Type GetType()] Zwraca zmienną typu {\em Type}, która określa typ obiektu. 
+\end{description}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class Klasa1 {}
+  public class Klasa2 
+  {
+    public override string ToString()
+    {
+      return "Jestem obiektem klasy Klasa2";
+    } 
+  }
+
+  public class CMain
+  {
+    public static void Main()
+    {
+      Klasa1 k1 = new Klasa1();
+      Klasa2 k2 = new Klasa2();
+      
+      Console.WriteLine( k1.ToString() );
+      Console.WriteLine( k2.ToString() );
+
+      Console.WriteLine( k1.GetType().ToString() );
+      Console.WriteLine( k2.GetType().ToString() );
+
+      Console.WriteLine( k1.GetType().GetType().ToString() );
+    }
+  }
+}
+
+C:\Example>example.exe
+Example.Klasa1
+Jestem obiektem klasy Klasa2
+Example.Klasa1
+Example.Klasa2
+System.RuntimeType
+\end{verbatim}
+\end{scriptsize}
+
+Jak widać wartość wyrażenia
+\begin{scriptsize}
+\begin{verbatim}
+object_value.GetType()
+\end{verbatim}
+\end{scriptsize}
+
+sama jest wartością typu {\em Type}, można więc zapytać o jej typ
+
+\begin{scriptsize}
+\begin{verbatim}
+object_value.GetType().GetType()
+\end{verbatim}
+\end{scriptsize}
+
+i poprosić o jego reprezentację 
+
+\begin{scriptsize}
+\begin{verbatim}
+object_value.GetType().GetType().ToString()
+\end{verbatim}
+\end{scriptsize}
+
+Zalety zunifikowanego systemu typów ({\em CTS, Common Type System}) to jednak nie tylko elegancja języka.
+CTS gra główną rolę przy łączeniu przez środowisko uruchomieniowe kodu napisanego w różnych językach. 
+Każdy kompilator musi umieć posługiwać się zdefiniowanymi w CTS typami prostymi, musi także 
+definiować własne typy wpasowując je w określoną przez CTS hierarchię typów. Sam CTS jest częścią
+szerszej specyfikacji zwanej CLS ({\em Common Language Specification}), która dodatkowo określa 
+inne istotne wymagania dla kompilatora (takie jak sposób zarządzania pamięcią, obsługi wyjątków). 
+
+Największą zaletą CTS jest jednak bezpieczeństwo jakie oferuje tak zaprojektowany system typów.
+\begin{itemize}
+\item{Typ każdego obiektu może być jednoznacznie określony, nawet dynamicznie, czyli w trakcie działania programu.}
+\item{Nie ma możliwości oszukania systemu typów przez próbę przekonania go że jakiś obiekt ma inny typ
+niż jego prawdziwy typ.}
+\item Dostęp do składowych każdego obiektu (publiczny, prywatny) jest określony na poziomie definicji klasy i 
+nie jest możliwe działanie wbrew określonym prawom dostępu. To znaczy, że na przykład jeśli składowa klasy 
+jest prywatna, to system typów i środowisko uruchomieniowe chronią ją przed dostępem z 
+zewnątrz\footnote{W C++ kwalifikatory dostępu to tak naprawdę mechanizm którym programista chroni się
+sam przed sobą. Można bowiem zrzutować obiekt klasy z polami prywatnymi na inną klasę z polami publicznymi, w
+ten sposób obchodząc mechanizm kwalifikatorów.}.  
+\end{itemize}
+
+\subsection{Typy proste a typy referencyjne, boxing i unboxing}
+
+System typów, w którym każdy byt jest obiektem nie jest pomysłem nowym. Tak jest na przykład
+w SmallTalku. Niestety, SmallTalk płaci za tę cechę języka cenę efektywności - tam gdzie mamy
+do czynienia na przykład z liczbami całkowitymi czy zmiennoprzecinkowymi (na których procesor
+potrafi przecież dokonywać szybkich obliczeń) konieczność opakowywania ich w struktury obiektowe
+dramatycznie zmniejsza wydajność.
+
+Projektanci języka C\# rozwiązali ten problem dzieląc świat wszystkich obiektów na dwie kategorie:
+obiekty proste i obiekty referencyjne. Obiekty proste są tworzone na stosie i reprezentowane są
+przez aktualną wartość obiektu. Obiekty proste nie mogą więc mieć wartości {\em null}, która
+związania jest z pustym wskazaniem - one zawsze mają wartość. 
+Obiekty referencyjne tworzone są na stercie, zaś na stosie znajduje
+się referencja do obiektu na stercie. 
+
+\begin{center}
+$$
+\begin{array}{rlll}
+           & \mbox{Stos} & & \mbox{Sterta} \\
+             \hline            \\
+\mbox{int} & \framebox[3cm]{17} & & \\
+\mbox{string} & \framebox[3cm]{adres} & \longleftrightarrow & \framebox[3cm]{"Ala ma kota"} \\
+
+\end{array}
+$$
+\end{center}
+
+Obiektami prostymi są w C\# na przykład arytmetyczne typy wbudowane, enumeracje i typy zdefiniowane
+jako struktury (patrz \ref{subsubsection:klasy}). Obiektami referencyjnymi są pozostałe klasy, tablice,
+delegaci, interfejsy.
+
+Obiekt typu prostego jest inicjowany bezpośrednio po zadeklarowaniu. Oznacza to, że nie ma
+potrzeby jawnego wywołania konstruktora, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+int i;
+
+for ( i=0; i<20; i++ )
+  ...
+\end{verbatim}
+\end{scriptsize}
+
+Programista może przekształcać obiekty o typach prostych do postaci referencyjnej za pomocą
+tzw. opakowywania (ang. {\em boxing}), a następnie z powrotem do postaci prostem (odpakowywanie, {\em unboxing}).
+
+\begin{scriptsize}
+\begin{verbatim}
+int    i = 1;
+object o = i;
+int    newi = (int)o;
+\end{verbatim}
+\end{scriptsize}
+
+\begin{center}
+$$
+\begin{array}{rlll}
+            & \mbox{Stos} & & \mbox{Sterta} \\
+\hline                                      \\
+\mbox{i}    & \framebox[3cm]{1} & & \\
+\mbox{o}    & \framebox[3cm]{adres} & \longleftrightarrow & \framebox[3cm]{1} \\
+\mbox{newi} & \framebox[3cm]{1} & & \\
+
+\end{array}
+$$
+\end{center}

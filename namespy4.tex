@@ -1,0 +1,521 @@
+﻿\subsection{XML}
+\label{section_XML}
+
+Tam, gdzie zachodzi konieczność wymiany danych, tam programiści muszą ustalić jakiś sposób 
+ich przekazywania. Wyobraźmy sobie scenariusz, w którym aplikacja A powinna udostępniać jakiś
+zbiór danych aplikacji B.
+
+Najbardziej naiwnym podejściem byłoby dodanie do aplikacji B modułu pozwalającego na wczytywanie
+danych bezpośrednio w formie, w jakiej składuje je aplikacja A. Takie rozwiązanie nie sprawdza się
+jednak wtedy, gdy format danych aplikacji A ulegnie z jakiegoś powodu zmianie (najczęściej rozszerzeniu).
+
+Wydawałoby się więc, że rozwiązaniem byłoby zaprojektowanie jakiegoś formatu pliku pozwalającego
+na przekazywanie danych między aplikacjami. Takie rozwiązanie mogłoby być niezależne od wewnętrznych
+formatów danych aplikacji A i B. Gdyby jednak przekazywać dane w formie binarnej, to oczywiście w razie
+chęci rozszerzenia zakresu przekazywanych danych cała zabawa zaczyna się od początku.
+
+Dość nieoczekiwanie rozwiązaniem tego i podobnych problemów okazało się zaprojektowanie
+standardu XML (ang {\em eXtended Markup Language}), czyli pewnego standardu budowania plików
+tekstowych do przesyłania dowolnego typu danych. XML przyjął się głównie dzięki temu, że 
+uprościł przesyłanie danych w sieci, gdzie informacja w formie tekstowej okazuje się być często
+jedynym wspólnym mianownikiem dla różnego rodzaju platform biorących udział w komunikacji.
+
+Sam w sobie XML jest rozszerzeniem idei HTML - o ile jednak HTML narzuca ściśle zbiór możliwych nazw
+węzłów jest ściśle ustalony, o tyle XML pozwala ustalać je dowolnie. Tak jak pliki HTML, tak i pliki XML
+mogą być budowane nawet w zwykłym edytorze tekstów. Przeglądarki internetowe potrafią najczęściej przeglądać
+takie pliki (była już o tym mowa na stronie \pageref{dokumentowanieKodu}).
+
+Biblioteka {\em System.Xml} pozwala na manipulowanie plikami XML na 3 sposoby (a właściwie 2 i pół, bo
+ostatni jest tylko rozszerzeniem przedostatniego): 
+\begin{itemize}
+\item za pomocą obiektów {\em System.Xml.XmlTextReader} i {\em System.Xml.XmlTextWriter}
+\item za pomocą obiektów DOM (klasa {\em System.Xml.XmlDocument})
+\item za pomocą obiektów z {\em System.Xml.XPath} 
+\end{itemize}
+
+Pierwsze dwie możliwości pozwalają na programowe czytanie i tworzenie plików XML, zaś obiekty {\em XPath}
+wspomagają tylko odczyt struktury XML.
+
+Przygotujmy najpierw prosty plik z danymi:
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0" encoding="windows-1250"?>
+<ListaOsób nazwa="znajomi">
+  <Osoba>
+    <Imię>Jan</Imię>
+    <Nazwisko>Kowalski</Nazwisko>
+    <DataUr>1950-02-07</DataUr>
+  </Osoba>
+  <Osoba>
+    <Imię>Tomasz</Imię>
+    <Nazwisko>Malinowski</Nazwisko>
+    <DataUr>1976-10-04</DataUr>
+  </Osoba>
+  <Osoba>
+    <Imię>Adam</Imię>
+    <Nazwisko>Nowak</Nazwisko>
+    <DataUr>1984-02-17</DataUr>
+  </Osoba>
+</ListaOsób>
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{{\em XmlTextReader} i {\em XmlTextWriter}}
+
+Z perspektywy obiektów {\em XmlTextReader} i {\em XmlTextWriter} pliki XML są strumieniami danych.
+Odczyt zawartości pliku XML za pomocą obiektu {\em XmlTextReader} może wyglądać następująco:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Xml;
+
+namespace Example
+{
+  public class CMain
+  {   
+    public static void Main()
+    {
+       FileStream fs = new FileStream( "osoby.xml", FileMode.Open );
+       XmlTextReader xr = new XmlTextReader( fs );
+
+       while ( xr.Read() )
+       {
+         XmlNodeType t = xr.NodeType;
+         Console.WriteLine( "Węzeł typu {0}", t );
+
+         if ( t == XmlNodeType.Element )
+         {
+           Console.WriteLine( "\t<{0}>", xr.Name );
+           if ( xr.HasAttributes )
+             while ( xr.MoveToNextAttribute() )
+               Console.WriteLine( "\t\t[{0}]{1}", xr.Name, xr.Value );                         
+         }  
+         if ( t == XmlNodeType.Text )
+           Console.WriteLine( "Tekst: {0}", xr.Value );         
+       }
+
+       xr.Close();
+    }
+  }
+}
+
+C:\Example>example.exe
+Węzeł typu XmlDeclaration
+Węzeł typu Whitespace
+Węzeł typu Element
+	<ListaOsób>
+		[nazwa]znajomi
+Węzeł typu Whitespace
+Węzeł typu Element
+	<Osoba>
+Węzeł typu Whitespace
+Węzeł typu Element
+	<Imię>
+Węzeł typu Text
+Tekst: Jan
+Węzeł typu EndElement
+Węzeł typu Whitespace
+Węzeł typu Element
+	<Nazwisko>
+Węzeł typu Text
+Tekst: Kowalski
+Węzeł typu EndElement
+Węzeł typu Whitespace
+Węzeł typu Element
+	<DataUr>
+Węzeł typu Text
+Tekst: 1950-02-07
+...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Obiekty DOM}
+
+Obiekty DOM najpierw wczytują zawartość XMLa do pamięci, a następnie budują drzewo
+składniowe, które programista może przeglądać rekursywnie zgodnie z jego strukturą:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Xml;
+
+namespace Example
+{
+  public class CMain
+  {   
+    public static void InfoOWezle( XmlNode node )
+    {
+        Console.WriteLine( "Węzeł typu {0}", node.NodeType );
+
+         if ( node.NodeType == XmlNodeType.Element )
+         {
+           Console.WriteLine( "\t<{0}>", node.Name );
+           foreach ( XmlAttribute a in node.Attributes )
+             Console.WriteLine( "\t\t[{0}]{1}", a.Name, a.Value );                         
+         }  
+         if ( node.NodeType == XmlNodeType.Text )
+           Console.WriteLine( "Tekst: {0}", node.Value );    
+
+         foreach ( XmlNode child in node.ChildNodes )
+           InfoOWezle( child );
+    }
+
+    public static void Main()
+    {
+       XmlDocument xml = new XmlDocument();
+       xml.Load( "osoby.xml" );
+
+       InfoOWezle( xml );
+    }
+  }
+}
+
+C:\Example>example.exe
+Węzeł typu Document
+Węzeł typu XmlDeclaration
+Węzeł typu Element
+	<ListaOsób>
+		[nazwa]znajomi
+Węzeł typu Element
+	<Osoba>
+Węzeł typu Element
+	<Imię>
+Węzeł typu Text
+Tekst: Jan
+Węzeł typu Element
+	<Nazwisko>
+Węzeł typu Text
+Tekst: Kowalski
+Węzeł typu Element
+	<DataUr>
+Węzeł typu Text
+Tekst: 1950-02-07
+...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{XPath}
+
+Jeszcze jeden krok dalej idą obiekty z klasy {\em XPath}, za pomocą których można łatwiej
+nawigować po strukturze obiektu {\em XmlDocument}. Obiekt {\em XPathNavigator} umożliwia
+wybór konkretnego węzła, zaś {\em XPathNodeIterator} pozwala na nawigację po sąsiednich węzłach.
+
+Aby uprościć przykład, przesuńmy informacje o osobach z podwęzłów do atrybutów węzłów.
+
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0" encoding="windows-1250"?>
+<ListaOsób nazwa="znajomi">
+  <Osoba Imię="Jan" Nazwisko="Kowalski" DataUr="1950-02-07"/>
+  <Osoba Imię="Adam" Nazwisko="Nowak" DataUr="1992-12-23"/>
+  <Osoba Imię="Tomasz" Nazwisko="Malinowski" DataUr="1979-10-01"/>
+</ListaOsób>
+\end{verbatim}
+\end{scriptsize}
+
+Dzięki możliwości nawigacji po strukturze można łatwiej odczytywać tylko interesujące obiekty.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.IO;
+using System.Xml;
+using System.Xml.XPath;
+
+namespace Example
+{
+  public class CMain
+  {   
+    public static void InfoOOsobie( XPathNavigator node )
+    {
+       Console.WriteLine( "Osoba" );
+
+       Console.WriteLine( "Imię:\t\t" + node.GetAttribute( "Imię", "" ) );
+       Console.WriteLine( "Nazwisko:\t" + node.GetAttribute( "Nazwisko", "" ) );
+       Console.WriteLine( "Data ur.:\t" + node.GetAttribute( "DataUr", "" ) );
+    }
+
+    public static void Main()
+    {
+       XmlDocument xml = new XmlDocument();
+       xml.Load( "osoby.xml" );
+
+       XPathNavigator    n = xml.CreateNavigator();
+       XPathNodeIterator i = n.Select( "//ListaOsób/Osoba" );
+
+       while ( i.MoveNext() )
+         InfoOOsobie( i.Current );
+    }
+  }
+}
+
+C:\Example>example
+Osoba
+Imię:           Jan
+Nazwisko:       Kowalski
+Data ur.:       1950-02-07
+Osoba
+Imię:           Adam
+Nazwisko:       Nowak
+Data ur.:       1992-12-23
+Osoba
+Imię:           Tomasz
+Nazwisko:       Malinowski
+Data ur.:       1979-10-01
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Automatyczne tworzenie kodu do ładowania XML}
+
+Pliki XML przechowujące dane mają najczęściej prostą strukturę. Czy nie można wykorzystać tego
+spostrzeżenia do zautomatyzowania tworzenia kodu parsującego plik XML?
+
+Okazuje się, że jest to możliwe. W skład programów narzędziowych, udostępnianych z {\bf .NET Framework SDK}
+znajduje się niepozorne narzędzie o nazwie {\bf xsd.exe}. To ono właśnie pozwala znacznie uprościć
+proces tworzenia kodu dla danych XML. 
+
+Punktem wyjścia będą dane. Zaczynamy od zaprojektowania struktury o dowolnej pojemności informacyjnej. 
+Na przykład takiej (nazwimy te dane {\bf dane.xml}):
+
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0" encoding="windows-1250"?>
+<ListaOsob xmlns='MojeDane'>
+   <Osoba obyw_polskie="T">
+    <Imie>Jan</Imie>
+    <Nazwisko>Kowalski</Nazwisko>
+    <DataUr>1950-02-07</DataUr>
+  </Osoba>
+  <Osoba obyw_polskie="T">
+    <Imie>Tomasz</Imie>
+    <Nazwisko>Malinowski</Nazwisko>
+    <DataUr>1976-10-04</DataUr>
+  </Osoba>
+  <Osoba obyw_polskie="T">
+    <Imie>Adam</Imie>
+    <Nazwisko>Nowak</Nazwisko>
+    <DataUr>1984-02-17</DataUr>
+  </Osoba>
+</ListaOsob>
+\end{verbatim}
+\end{scriptsize}
+
+Nowym elementem w tej definicji jest atrybut {\bf xmlns} w głównym węźle danych, który wszystkie dane
+przypisuje do przestrzeni nazw {\bf MojeDane}. Będzie to ważne wtedy, kiedy będziemy weryfikowali poprawność
+otrzymanych danych.
+
+Następny krok polega na uruchomieniu {\bf xsd.exe} i wskazaniu pliku XML jako parametru. Efektem będzie plik 
+XSD, zawierający w sobie informację o strukturze podanego pliku XML.
+
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="ListaOsob" targetNamespace="MojeDane" 
+xmlns:mstns="MojeDane" xmlns="MojeDane" xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" 
+attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:element name="ListaOsob" msdata:IsDataSet="true" msdata:Locale="pl-PL">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="Osoba">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Imie" type="xs:string" minOccurs="0" msdata:Ordinal="0" />
+              <xs:element name="Nazwisko" type="xs:string" minOccurs="0" msdata:Ordinal="1" />
+              <xs:element name="DataUr" type="xs:string" minOccurs="0" msdata:Ordinal="2" />
+            </xs:sequence>
+            <xs:attribute name="obyw_polskie" form="unqualified" type="xs:string" />
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+\end{verbatim}
+\end{scriptsize}
+
+Tak przygotowany opis struktury danych może posłużyć do automatycznego wygenerowania kodu, który
+będzie potrafił wczytywać pliki XML. Wystarczy ponownie uruchomić {\bf xsd.exe}, tym razem z przełącznikiem
+{\bf classes} i jako parametr podać plik XSD. Efektem będzie plik zawierający w sobie
+kod C\#.
+
+\begin{scriptsize}
+\begin{verbatim}
+//------------------------------------------------------------------------------
+// <autogenerated>
+//     This code was generated by a tool.
+//     Runtime Version: 1.0.3705.0
+//
+//     Changes to this file may cause incorrect behavior and will be lost if 
+//     the code is regenerated.
+// </autogenerated>
+//------------------------------------------------------------------------------
+
+// 
+// This source code was auto-generated by xsd, Version=1.0.3705.0.
+// 
+using System.Xml.Serialization;
+
+/// <remarks/>
+[System.Xml.Serialization.XmlTypeAttribute(Namespace="MojeDane")]
+[System.Xml.Serialization.XmlRootAttribute("ListaOsob", 
+                             Namespace="MojeDane", IsNullable=false)]
+public class ListaOsob {
+    
+    /// <remarks/>
+    [System.Xml.Serialization.XmlElementAttribute("Osoba")]
+    public ListaOsobOsoba[] Items;
+}
+
+/// <remarks/>
+[System.Xml.Serialization.XmlTypeAttribute(Namespace="MojeDane")]
+public class ListaOsobOsoba {
+    
+    /// <remarks/>
+    public string Imie;
+    
+    /// <remarks/>
+    public string Nazwisko;
+    
+    /// <remarks/>
+    public string DataUr;
+    
+    /// <remarks/>
+    [System.Xml.Serialization.XmlAttributeAttribute(
+     Form=System.Xml.Schema.XmlSchemaForm.Unqualified)]
+    public string obyw_polskie;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Jak widać kod ten zawiera klasy {\bf ListaOsob} i {\bf ListaOsobOsoba}, których składowe odpowiadają
+relacjom między odpowiednimi węzłami opisanymi w strukturze XML. Wystarczy jedynie dopisać kod do 
+deserializacji obiektu\footnote{Mechanizm serializacji danych opisano dokładniej w 
+rozdziale \ref{csSerializacja}}:
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.IO;
+using System.Xml;
+using System.Xml.Serialization;
+
+public class CMain
+{
+  public static void Main()
+  {
+    XmlSerializer xS = new XmlSerializer(typeof(ListaOsob));
+
+    FileStream fs = new FileStream( "dane.xml", FileMode.Open );
+    ListaOsob ds = (ListaOsob)xS.Deserialize( fs );
+
+    foreach ( ListaOsobOsoba o in ds.Items )
+    {  
+      Console.WriteLine( String.Format( "{0}, {1}, {2}", 
+      o.Imie, o.Nazwisko, o.DataUr ) );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Całość można już skompilować i uruchomić:
+
+\begin{scriptsize}
+\begin{verbatim}
+C:\Example>csc.exe example.cs dane.cs
+Microsoft (R) Visual C# .NET Compiler version 7.10.3052.4
+for Microsoft (R) .NET Framework version 1.1.4322
+Copyright (C) Microsoft Corporation 2001-2002. All rights reserved.
+
+
+C:\Example>example
+Jan, Kowalski, 1950-02-07
+Tomasz, Malinowski, 1976-10-04
+Adam, Nowak, 1984-02-17
+\end{verbatim}
+\end{scriptsize}
+
+Podsumujmy: dysponując danymi w postaci XML mogliśmy automatycznie wygenerować opis struktury danych w postaci
+pliku XSD, zaś ten posłużył do automatycznego wygenerowania kodu C\#. Po dopisaniu kilku linijek kodu
+deserializującego obiekt, otrzymaliśmy możliwość łatwego ładowania pliku XML i przenoszenia jego
+zawartości do programu. 
+
+\subsubsection{Weryfikacja poprawności danych XML}
+
+Okazuje się, że schemat XSD nadaje się nie tylko do automatycznego generowania kodu odpowiednich klas do
+przechowywania danych w programie, ale może być wykorzystany do dynamicznej walidacji poprawności danych XML.
+
+Do tego celu wykorzystamy obiekt typu {\bf XmlValidatingReader}. Podczas ładowania dokumentu sprawdza on
+poprawność danych, a ściśle - zgodność ze specyfikacją zawartą w strukturze XSD. Ewentualne błędy
+lub ostrzeżenia są zgłaszane za pomocą zdarzenia {\bf ValidationEventHandler}. 
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.IO;
+using System.Xml;
+using System.Xml.Schema;
+ 
+namespace Example
+{
+  public class CMain
+  {   
+    public static void Main()
+    {
+       XmlDocument xml = new XmlDocument();
+
+       XmlTextReader tr = new XmlTextReader( "dane.xml" );
+       XmlValidatingReader reader = new XmlValidatingReader(tr);
+
+       reader.ValidationType = ValidationType.Schema;
+       reader.ValidationEventHandler += new ValidationEventHandler (ValidationHandler);
+
+       xml.Load( reader );
+
+       Console.WriteLine( "Wczytano plik." );
+    }
+
+     public static void ValidationHandler(object sender, ValidationEventArgs args)
+     {
+        Console.WriteLine("*Błąd walidacji*");
+        Console.WriteLine("\tWaznosc: {0}", args.Severity);
+        Console.WriteLine("\tInfo:    {0}", args.Message);
+     }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Efekt uruchomienia powyższego programu może być w pierwszej chwili dość zaskakujący: każda linia
+pliku z danymi powoduje zgłoszenie ostrzeżenia o braku schematu do walidacji. Dzieje się tak dlatego, że
+nigdzie nie skojarzyliśmy pliku z danymi (dane.xml) z plikiem zawierającym schemat struktury (dane.xsd).
+Poza tym, że fizycznie mogą znajdować się w jednym folderze, nic tych plików nie łączy. 
+
+Aby plik XML był walidowany przy użyciu schematu XSD, należy odpowiednią informację zaszyć
+we wnętrzu pliku XML. 
+
+\begin{scriptsize}
+\begin{verbatim}
+<?xml version="1.0" encoding="windows-1250"?>
+<ListaOsob xmlns='MojeDane' 
+           xmlns:MojWalidator='http://www.w3.org/2001/XMLSchema-instance'
+           MojWalidator:schemaLocation='MojeDane dane.xsd'>
+  ...
+</ListaOsob>
+\end{verbatim}
+\end{scriptsize}
+
+Tak osygnowany plik XML będzie już poprawnie walidowany i każde odstępstwo od schematu będzie
+wyłapywane jako błąd. 
+
+Dokładne zapoznanie się z możliwościami schematów XSD umożliwia bardzo szczegółowe
+zapanowanie nad regułami walidacji dokumentów XML. Jest to bardzo przydatne w sytuacji, kiedy
+producent danych nie jest znany, nie jest wiarygodny bądź po prostu struktura danych ulega modyfikacji
+w czasie życia aplikacji.

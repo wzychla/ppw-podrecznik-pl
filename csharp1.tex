@@ -1,0 +1,129 @@
+﻿\section{Podstawowe elementy języka C\#}
+
+Język C\# jest językiem obiektowym. Z dotychczas znanych języków najbardziej przypomina Javę, jednak
+kilka istotnych ułomności Javy zostało w C\# poprawionych, czyniąc C\# jednym z najelegantszych 
+dotychczas zaprojektowanych języków programowania\footnote{Ze zdziwieniem słucham opinii niektórych 
+programistów, że podobieństwo C\# do Javy oznacza jego ułomność. Takie opinie powtarzają
+najczęściej ci, którzy C\# nie znają. Z tych samych powodów nie warto zapewne zajmować się Javą, bo jest
+bardzo podobna do C++, nie warto zajmować się C++ bo jest bardzo podobny do C itd. Wedle
+tej logiki zapewne w ogóle nie warto zajmować się programowaniem, bo wszystko jest do czegoś podobne.}.
+Autorzy projektu języka wyraźnie i często podkreślają, że wybranie takiej a nie innej składni 
+podstawowych konstrukcji języka oznacza nie tylko dużą łatwość pracy dla programistów znających 
+wcześniej Javę czy C++, ale oznacza również możliwość łatwej konwersji już istniejącego 
+kodu\footnote{Microsoft rozpowszechnia darmowy konwerter kodu Javy do C\#, który zadziwiająco dobrze
+radzi sobie z nawet skomplikowanymi programami. Program można bezpłatnie pobrać ze stron MSDN.}.
+
+Jak już wcześniej powiedziano, kompilator C\# jest częścią środowiska uruchomieniowego \NETFramework{}. 
+Do tworzenia i uruchamiania programów nadaje się każdy system Windows, począwszy od Windows 98. Również
+niektóre darmowe środowiska developerskie można uruchomić na Windows 98 i wyższych. Jedynie Visual Studio .NET
+wymaga co najmniej Windows 2000, jednak rozwijane w nim programy uruchomią się na Windows 98 z zainstalowanym
+środowiskiem uruchomieniowym \NET{}.
+
+Kompilator C\# tworzy kod wynikowy w języku pośrednim, zwanym IL i umieszcza go
+w {em module binarnym}. Moduł może być aplikacją konsolową lub okienkową (pliki {\em *.exe}) lub
+biblioteką klas (pliki {\em *.dll}). NETFramework{} traktuje każdy moduł w sposób jednakowy - podczas
+uruchamiania kodu zawartego w module, uruchamiany jest kompilator JIT ({\em Just-In-Time}), który 
+tworzy kod natywny systemu operacyjnego, po czym uruchamia ten kod jak zwykłą aplikację w systemie
+operacyjnym. Dzięki temu prędkość działania aplikacji C\#-owej w systemie jest porównywalna
+z prędkością aplikacji napisanej w C++. 
+
+\begin{table}[ht]
+	\begin{center}
+
+	\framebox[7cm]{Kod źródłowy w Javie}  \\ $\downarrow$ \\
+	 \mbox{Kompilacja}                                  \\ $\downarrow$ \\
+	\framebox[7cm]{Kod pośredni ({\em Java Bytecode})}  \\ $\downarrow$ \\
+	 \mbox{Interpretacja kodu przez maszynę wirtualną Javy} \\ 
+         \mbox{}                                                         \\
+         \mbox{}                                                         \\
+	\framebox[7cm]{Kod źródłowy w C\#}  \\ $\downarrow$ \\
+	 \mbox{Kompilacja}                                  \\ $\downarrow$ \\
+	\framebox[7cm]{Kod pośredni ({\em IL})}  \\ $\downarrow$ \\
+	 \mbox{Kompilacja JIT} \\ $\downarrow$ \\
+	 \mbox{Uruchamianie kodu natywnego} 
+
+	\end{center}
+\caption{Schematy uruchamiania kodów Javy i C\# w systemie operacyjnym} 
+\label{tab:RuntimeLangs}
+\end{table}
+
+\subsection{Pierwszy program w C\#}
+
+Zgodnie z tradycją rozpocznijmy od najprostszego programu C\#-owego i przeanalizujmy elementy jego kodu.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CMain
+  {
+    public static void Main()
+    {
+      Console.WriteLine( "Pierwszy program w C#" );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kompilator przywołany z linii poleceń przedstawia się i kompiluje program. 
+Kod wynikowy powyższego programu zajmuje 3072 bajty. 
+
+\begin{scriptsize}
+\begin{verbatim}
+C:\Examples>csc.exe example.cs
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+\end{verbatim}
+\end{scriptsize}
+
+Tak jak w przypadku każdego języka obiektowego, również kod programu C\#-owego składa się z klas.
+Podobnie jak w Javie jedna z klas musi zawierać publiczną statyczną metodę {\em Main}, od której
+rozpoczyna się wykonanie programu. Możliwe jest zdefiniowanie metody {\em Main} w więcej
+niż jednej klasie, jednak wtedy należy explicite podać kompilatorowi nazwę klasy zawierającej 
+tę metodę Main, która ma zostać uwzględniona jako główna metoda aplikacji.
+\label{main_wielerazy}
+
+\begin{scriptsize}
+\begin{verbatim}
+C:\Examples>csc.exe example.cs /main:Example.CMain
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+\end{verbatim}
+\end{scriptsize}
+
+Programista ma do dyspozycji kilkanaście typów prostych wspólnych dla wszystkich aplikacji 
+platformy \NET. Deklarując zmienne można używać pełnej nazwy typu lub skrótu jego nazwy
+
+\begin{center}
+$$\begin{array}{lll}
+\mbox{Nazwa typu} & \mbox{Skrót nazwy} & \mbox{Opis} \\
+\hline \\
+\mbox{System.Object}  & \mbox{object} & \mbox{Klasa bazowa dla wszystkich typów} \\
+\mbox{System.String}  & \mbox{string} & \mbox{Napis} \\ 
+\mbox{System.Sbyte}   & \mbox{sbyte}  & \mbox{8-bitowa liczba całkowita ze znakiem}  \\
+\mbox{System.Byte}    & \mbox{byte}   & \mbox{8-bitowa liczba całkowita bez znaku}   \\
+\mbox{System.Int16}   & \mbox{short}  & \mbox{16-bitowa liczba całkowita ze znakiem} \\
+\mbox{System.UInt16}  & \mbox{ushort} & \mbox{16-bitowa liczba całkowita bez znaku} \\
+\mbox{System.Int32}   & \mbox{int}    & \mbox{32-bitowa liczba całkowita ze znakiem} \\
+\mbox{System.UInt32}  & \mbox{uint}   & \mbox{32-bitowa liczba całkowita bez znaku} \\
+\mbox{System.Int64}   & \mbox{long}   & \mbox{64-bitowa liczba całkowita ze znakiem} \\
+\mbox{System.UInt64}  & \mbox{ulong}  & \mbox{64-bitowa liczba całkowita bez znaku} \\
+\mbox{System.Char}    & \mbox{char}   & \mbox{16-bitowy znak Unicode} \\
+\mbox{System.Single}  & \mbox{float}  & \mbox{32-bitowa liczba zmiennoprzecinkowa} \\ 
+\mbox{System.Double}  & \mbox{double} & \mbox{64-bitowa liczba zmiennoprzecinkowa} \\ 
+\mbox{System.Boolean} & \mbox{bool}   & \mbox{wartość logiczna (true/false)} \\
+\mbox{System.Decimal} & \mbox{decimal} & \mbox{128-bitowa wartość numeryczna}
+\end{array}$$
+\end{center}
+
+Oprócz typów prostych biblioteka standardowa zawiera setki typów złożonych. Poznanie 
+tych bardziej użytecznych jest jednym z zadań jakie czeka programistę chcącego nauczyć się
+biegle programować aplikacje na platformie \NET{}.

@@ -1,0 +1,36 @@
+﻿\section{Aplikacje okienkowe}
+
+Jak widzieliśmy w poprzednich rozdziałach, programowanie Windows nie polega wyłącznie na tworzeniu okien,
+jednak z pewnością to właśnie temu zagadnieniu programista poświęca zwykle sporo czasu. 
+Od dobrej biblioteki wspierającej tworzenie okien i własnych komponentów należałoby oczekiwać prostoty
+i spójności. Z perspektywy historycznej można powiedzieć, że Win32Api jest interfejsem spójnym jednak dość
+żmudnym. W kolejnych latach powstawały więc kolejne wyspecjalizowane bibilioteki, 
+wspierające tworzenie aplikacji okienkowych. Dużą populaność zdobył sobie również Visual Basic, 
+w którym projektowanie interfejsu użytkownika było wyjątkowo proste, jednak interfejs programowania
+był bardzo niespójny - często podobne czynności w różnych kontekstach realizowane były za pomocą
+zupełnie różnych mechanizmów\footnote{Visual Basic z czasów przed VB.NET jest również dość słaby jako
+język programowania, ponieważ ma ubogi i nieprzemyślany model obiektowy.}. 
+
+Biblioteka {\bf System.Windows.Forms}, która umożliwia tworzenie aplikacji okienkowych w świecie .NET
+jest zarówno prosta jak i spójna. Nie sprawi kłopotu ani nowicjuszowi, który chciałby nauczyć się 
+tworzyć okna jak najszybciej, ani profesjonaliście, który znając ułomności innych interfejsów szybko
+nauczy się korzystać z zaawansowanych mechanizmów biblioteki {\em System.Windows.Forms}. Tworzenie
+interfejsu użytkownika jest równie proste jak w "starym" Visual Basicu, zaś kontrola, jaką programista
+ma nad oprogramowywanym interfejsem, dorównuje tej, jaką daje Win32Api.
+
+{\bf System.Windows.Forms}, jako interfejs w pełni obiektowy, najbardziej przypomina biblioteki
+okienkowe Javy. Dla programisty najważniejsze jest to, że cały opis komponentu (okna, kontrolki) jest
+częścią kodu, dzięki czemu kod nie jest w żaden sposób związany z jakimś środowiskiem developerskim.
+Przy odrobinie wprawy można z powodzeniem pisać programy okienkowe używając dowolnego edytora tekstu,
+nawet zwykłego Notatnika.
+
+Interfejs obiekty oznacza również, że funkcjonalność każdego komponentu można bardzo łatwo rozszerzyć
+tworząc w razie potrzeby klasę potomną dziedziczącą z niego. Programista może również w łatwy sposób
+tworzyć własne komponenty wizualne (kontrolki), do których może zaprojektować własne zdarzenia. 
+
+\input{winforms1}
+\input{winforms2}
+\input{winforms3}
+\input{winforms4}
+\input{winforms5}
+\input{winforms6}

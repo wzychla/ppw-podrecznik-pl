@@ -1,0 +1,335 @@
+﻿\section{Ciekawostki .NET}
+
+\subsection{Błąd odśmiecania we wczesnych wersjach Frameworka}
+
+Odśmiecacz, jako kluczowy element środowiska uruchomieniowego, powinien radzić sobie w wielu
+różnych sytuacjach. Ciekawostką jst fakt, że w pierwszej wersji .NET Frameworka odśmiecacz czasami nie 
+potrafił radzić sobie z usuwaniem niepotrzebnej pamięci.
+
+Przykładowy program próbował w pętli rezerwować sobie coraz większy fragment pamięci, 
+zaczynając od bloku 10MB i zwiększając wielkość bloku o 10kB w każdej iteracji. Rezerwowany wewnątrz
+pętli blok powinien być oznaczony jako nieużywany, tak się jednak nie działo. W konsekwencji program działał
+tak długo, aż skończyła się dostępna w systemie pamięć, po czym kończył się z wyjątkiem {\bf Out of memory}.
+
+Problem został usunięty w poprawce {\bf SP2} do Frameworka 1.0. Nie występuje we Frameworku 1.1.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+class Test
+{
+   public static void Main(string [] args)
+   {
+      for (int tries=0; tries < 200; tries++)
+      {
+         int  iNElements = 10000000 + tries*10000;
+         
+         try
+         {
+             byte [] aMyMem = new byte [iNElements-1];
+         }
+         
+         catch (Exception e)
+         {
+             Console.WriteLine (e);
+             Console.WriteLine (iNElements);
+             return;
+         }         
+      }
+   }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Dostęp do prywatnych metod klasy}
+
+Mimo, że CLS dość mocno broni się przed dostępem do prywatnych składowych obiektów, 
+istnieje sposób na dostęp do prytwatnych metod. Okazuje się, że przydaje się tu mechanizm
+refleksji. Sposób ten, z oczywistych powodów, nie nadaje się do wydobywania informacji o
+prywatnych polach klas. Metody są bowiem składowymi statycznymi i są częścią opisu klasy. 
+Pola zaś są składowymi dynamicznymi, unikalnymi dla każdej nowej instancji obiektu.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Reflection;
+
+namespace Example
+{  
+
+  // Klasa z metodą prywatną
+  public class ClassA
+  {
+    private void metodaPrywatna()
+    {
+      Console.WriteLine( "Metoda prywatna." );
+    }
+  }
+
+  public class CMain
+  {
+    static void Main()
+    {
+      ClassA classA = new ClassA();
+      Type     type = classA.GetType();
+
+      foreach (MethodInfo method in type.GetMethods(
+               BindingFlags.Instance | BindingFlags.NonPublic))
+      {
+        if (method.Name == "metodaPrywatna")
+        {
+          method.Invoke( classA, new object[] {} );
+        }
+      }
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Informacje o systemie}
+
+\subsubsection{Informacje o konfiguracji systemu}
+
+Informacje o konfiguracji systemu dostępne są dzięki propercjom i metodom klasy {\bf Environment}.
+Istnieje m.in. możliwość uzyskania informacji:
+
+\begin{description}
+\item [CommandLine] - parametry linii poleceń
+\item [CurrentDirectory] - bieżąca ścieżka 
+\item [GetEnvironmentVariables] - zmienne systemowe
+\item [GetFolderPath] - lokalizacja specjalnych folderów systemowych 
+\item [GetLogicalDrives] - lista napędów logicznych w systemie
+\item [MachineName] - nazwa komputera
+\item [SystemDirectory] - folder systemowy
+\item [Version] - wersja systemu
+\end{description}
+
+\subsubsection{Informacje o środowisku graficznym}
+
+Dostęp do informacji o konfiguracji środowiska graficznego możliwy jest dzięki klasie {\bf SystemInformation}.
+Dostępne są m.in. następujące informacje :
+
+\begin{description}
+\item [ComputerName] - nazwa komputera
+\item [MonitorCount] - liczba monitorów
+\item [MouseButtons] - liczba przycisków myszy
+\item [MouseWheelPresent] - dodatkowa możliwość myszy (obecność kółka)
+\end{description}
+
+oraz mnóstwo propercji opisujących rozmiary obiektów graficznych: kursora, ikon, czcionki menu, rozmiaru
+ekranu itd.
+
+\subsubsection{Informacje o środowisku uruchomieniowym}
+
+Istnieje również możliwość zasięgnięcia informacji o środowisku uruchomieniowym. Służy do tego
+klasa {\bf RuntimeEnvironment} z biblioteki {\bf System.Runtime.InteropServices}. Udostępnia informacje:
+
+\begin{description}
+\item [GetRuntimeDirectory] - ścieżka, w której zainstalowano środowisko uruchomieniowe
+\item [GetSystemVersion] - wersja środowiska uruchomieniowego
+\end{description}
+
+\subsection{Własny kształt kursora myszy}
+
+W szczególnych przypadkach można zmienić kształt kursora myszy. Biblioteki .NET udostępniają klasę
+{\bf Cursors}, która udostępnia większość typowych kursorów systemowych. Co jednak zrobić, gdy
+typowe kształty nie wystarczają?
+
+Otóż można skorzystać z możliwości przekształcenia dowolnej bitmapy na kursor myszy:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+// twórz bitmapę, można użyć już istniejącej
+Bitmap b = new Bitmap( 30, 15 );
+Graphics g = Graphics.FromImage ( b );
+g.DrawString ( "NAPIS", this.Font, Brushes.Black, 0, 0 );
+
+// uchwyt do ikony utworzonej z bitmapy
+IntPtr ptr = b.GetHicon();
+
+// zamień na ikonę lub kursor
+Icon   i = Icon.FromHandle ( ptr );
+Cursor c = new Cursor( ptr );
+
+// przypisz kursor oknu
+this.Cursor = c;
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Własne kształty okien}
+
+Windows potrafi wykorzystać maski bitowe do definiowana kształtów okien. W świecie .NET nieregularne
+okna można definiować dzięki obiektom {\bf GraphicsPath}, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+// elipsoidalny kształt okna
+GraphicsPath gP = new GraphicsPath();
+
+gP.AddEllipse ( 0, 0, this.Width, this.Height );
+this.Region = new Region ( gP );
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Podwójne buforowanie grafiki w GDI+}
+
+W GDI+ istnieje możliwość włączenia automatycznego podwójnego buforowania wyświetlanej grafiki.
+Obraz zyskuje dzięki temu na płynności, co jest szczególnie przydatne gdy obraz odświeżany jest
+dość często.
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+SetStyle(ControlStyles.UserPaint, true);
+SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+SetStyle(ControlStyles.DoubleBuffer, true);
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Sprawdzanie uprawnień użytkownika}
+
+Jeśli podczas pracy aplikacji zachodzi potrzeba sprawdzenia, czy użytkownik ma uprawnienia
+administratora można posłużyć się następującym kodem:
+
+\begin{scriptsize}
+\begin{verbatim}
+using System.Security;
+using System.Security.Permissions;
+using System.Security.Principal;
+
+...
+WindowsPrincipal wid = new WindowsPrincipal( WindowsIdentity.GetCurrent());
+bool         isAdmin = wid.IsInRole(WindowsBuiltInRole.Administrator);		
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{Ikona skojarzona z plikiem}
+
+System operacyjny Windows z niektórymi rozszerzeniami plików kojarzy aplikacje, służące do ich
+otwierania. Menedżery plików pokazując listę plików, pokazują też ikony skojarzone z plikami, czyli
+ikony aplikacji służących do otwierania tych plików.
+
+Biblioteki .NET nie udostępniają bezpośrednio funkcji do wydobywania ikon skojarzonych z plikami,
+należy więc sięgnąć do Win32API:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class ExtractIcon
+{
+ [DllImport("Shell32.dll")]
+ private static extern int  SHGetFileInfo
+ (
+  string pszPath,
+  uint dwFileAttributes,
+  out SHFILEINFO psfi,
+  uint cbfileInfo,
+  SHGFI uFlags
+ );
+
+ [StructLayout(LayoutKind.Sequential)]
+ private struct SHFILEINFO
+ {
+  public SHFILEINFO(bool b)
+  {
+   hIcon=IntPtr.Zero;iIcon=0;dwAttributes=0;szDisplayName="";szTypeName="";
+  }
+  public IntPtr hIcon;
+  public int iIcon;
+  public uint dwAttributes;
+  [MarshalAs(UnmanagedType.LPStr, SizeConst=260)]
+  public string szDisplayName;
+  [MarshalAs(UnmanagedType.LPStr, SizeConst=80)]
+  public string szTypeName;
+ };
+
+ private ExtractIcon() {}
+
+ private enum SHGFI
+ {
+  SmallIcon   = 0x00000001,
+  LargeIcon   = 0x00000000,
+  Icon    = 0x00000100,
+  DisplayName   = 0x00000200,
+  Typename   = 0x00000400,
+  SysIconIndex  = 0x00004000,
+  UseFileAttributes = 0x00000010
+ }
+
+ public static Icon GetIcon(string strPath, bool bSmall)
+ {
+  SHFILEINFO info = new SHFILEINFO(true);
+  int cbFileInfo = Marshal.SizeOf(info);
+  SHGFI flags;
+  if (bSmall)
+   flags = SHGFI.Icon|SHGFI.SmallIcon|SHGFI.UseFileAttributes;
+  else
+   flags = SHGFI.Icon|SHGFI.LargeIcon|SHGFI.UseFileAttributes;
+
+  SHGetFileInfo(strPath, 256, out info,(uint)cbFileInfo, flags);
+  return Icon.FromHandle(info.hIcon);
+ }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsection{WMI}
+
+WMI (ang. {\em Windows Management Instrumentation}) jest mechanizmem umożliwiającym diagnozowanie
+stanu komputera i systemu operacyjnego w jednorodny sposób: WMI udostępnia obiekt, który
+interfejsem przypomina bazę danych. Aby uzyskać interesujące informacje, należy po prostu zadać
+odpowiednie zapytanie w języku SQL, odwołując się do odpowiedniego obiektu WMI. 
+
+Możliwości WMI są naprawdę duże. Zadając odpowiednie zapytanie można dowiedzieć się mnóstwo
+szczegółów takich jak np. marka producenta płyty głównej, częstotliwość taktowania procesora, numer
+wersji BIOSu i wiele, wiele innych.
+
+WMI jest dostępne w Windows począwszy od Windows 2000. W Windows 98 musi być doinstalowane przez
+użytkownika.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Management;
+namespace WMI
+{
+  class CExample
+  {
+    static void Main(string[] args)
+    {
+      ManagementObjectSearcher query1 = 
+        new ManagementObjectSearcher("SELECT * FROM win32_OperatingSystem") ;
+      ManagementObjectCollection queryCollection1 = query1.Get();
+      foreach( ManagementObject mo in queryCollection1 ) 
+      {
+        Console.WriteLine("Name : " + mo["name"].ToString());
+        Console.WriteLine("Version : " + mo["version"].ToString());
+        Console.WriteLine("Manufacturer : " + mo["Manufacturer"].ToString());
+        Console.WriteLine("Computer Name : " +mo["csname"].ToString());
+        Console.WriteLine("Windows Directory : " + mo["WindowsDirectory"].ToString());
+      }                  
+
+      query1 = new ManagementObjectSearcher("SELECT * FROM win32_Processor") ;
+      queryCollection1 = query1.Get();
+      foreach( ManagementObject mo in queryCollection1 ) 
+      {
+        Console.WriteLine(mo["Caption"].ToString());
+        Console.WriteLine(mo["CurrentClockSpeed"].ToString());
+      }                       
+
+      query1 = new ManagementObjectSearcher("SELECT * FROM win32_BIOS") ;
+      queryCollection1 = query1.Get();
+      foreach( ManagementObject mo in queryCollection1 ) 
+      {
+        Console.WriteLine(mo["version"].ToString());
+      }                                   
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}

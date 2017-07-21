@@ -1,0 +1,22 @@
+﻿\ProvidesPackage{ppwstyl}
+
+%%%%% usunięcie domyślnego marginesu (1 cal)
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+%%%%% usunięcie marginesu na notatki
+\setlength{\marginparwidth}{0cm}
+\setlength{\marginparsep}{0cm}
+%%%%% ustawienie marginesów tekstu
+\setlength{\topmargin}{2.5cm}
+\setlength{\oddsidemargin}{3cm}
+\setlength{\evensidemargin}{3cm}
+%%%%% dobranie szerokości tekstu
+\setlength{\textheight}{23.7cm}
+\setlength{\textwidth}{16cm}
+%%%%% spacja po kropce nie jest większa
+\frenchspacing                              
+%%%%% numerowanie sekcji tekstu
+\renewcommand{\thechapter}{\Alph{chapter}}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+

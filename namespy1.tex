@@ -1,0 +1,1368 @@
+﻿\subsection{Kolekcje wbudowane i {\em System.Collections}}
+
+Przygotowując swoją aplikację do określonych zadań, programista musi zmierzyć się z dwoma czynnikami
+kształtującymi jej obraz: algorytmami i strukturami danych. O ile konkretne algorytmy są zwykle zależne
+od postaci problemu, który aplikacja ma rozwiązywać, o tyle te same struktury danych spotyka się niemal co chwila.
+
+Pewną bardzo specjalną grupę struktur danych stanowią byty, które bardzo ogólnie możnaby nazwać 
+{\bf kontenerami}. Zadaniem kontenerów jest {\em grupowanie} w większe struktury obiektów, 
+które z jakichś powodów powinny być trzymane razem. Różne języki programowania wspomagają programistów 
+w tym zakresie w różny sposób: w C tablice są częścią języka, wszystkie inne struktury danych programista
+musi przygotować sam; w C++ możliwości C rozszerzono przez dodanie biblioteki szablonów STL, w której
+programista może znaleźć większość potrzebnych rodzajów kontenerów oraz algorytmy do operowania na nich.
+
+Programista tworząc aplikację w C\# ma do dyspozycji solidną bibliotekę kontenerów (zwanych tu {\em kolekcjami}),
+zgromadzone w przestrzeni nazw {\em System.Collections}. 
+
+\subsubsection{Tablice}
+
+Tablice są najprostszymi kontenerami. W C\#, podobnie jak w wielu innych językach, 
+programista po określeniu rozmiaru tablicy nie ma wprost możliwości zmiany jej rozmiaru. Z tego powodu
+tablice przydają się najczęściej tam, gdzie ilość elementów jest z góry znana. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Console.Write( "Podaj ilosc elementow tablicy: " );
+
+      int     n = int.Parse( Console.ReadLine() );
+      int[] tab = new int[n];
+
+      for ( int i=0; i<n; i++ )
+        tab[i] = 2*i+1;
+
+      for ( int i=0; i<n; i++ )
+        Console.WriteLine( "{0} element tablicy -> {1}", i, tab[i] );
+    }
+  }
+}
+
+C:\Example>example.exe
+Podaj ilosc elementow tablicy: 7
+0 element tablicy -> 1
+1 element tablicy -> 3
+2 element tablicy -> 5
+3 element tablicy -> 7
+4 element tablicy -> 9
+5 element tablicy -> 11
+6 element tablicy -> 13
+\end{verbatim}
+\end{scriptsize}
+
+Tablice mogą być inicjowane w momencie deklaracji, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+int[] tab = {1, 2, 3, 4, 5, 6};
+\end{verbatim}
+\end{scriptsize}
+
+lub równoważnie
+
+\begin{scriptsize}
+\begin{verbatim}
+int[] tab = new int[]{1, 2, 3, 4, 5, 6};
+\end{verbatim}
+\end{scriptsize}
+
+Inaczej niż w przypadku prostych imperatywnych języków programowania, tablice w C\# są w każdej chwili
+swojego istnienia świadome swoich atrybutów. Oznacza, to że programista może na przykład w każdej
+chwili dowiedzieć się jaki jest rozmiar tablicy:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       int[] tab = new int[]{1, 2, 3, 4, 5, 6};
+
+       Console.WriteLine( tab.Length.ToString() );
+    }
+  }
+}
+
+C:\Example>example.exe
+6
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Tablice referencji}
+
+O ile w przypadku tablic, przechowujących obiekty o typach prostych, dostęp do elementów tablicy
+możliwy jest natychmiast po przydzieleniu pamięci dla tablicy, o tyle w przypadku typów 
+referencyjnych programista może być w pierwszej chwili zaskoczony:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CObiekt
+  {
+    public int dana;
+    public CObiekt() {}
+  }
+
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      const int IL  = 5;
+      CObiekt[] tab = new CObiekt[IL];
+   
+      tab[0].dana   = 1;           
+    }
+  }
+}
+
+C:\Example>example
+
+Unhandled Exception: System.NullReferenceException: Object reference not set to
+an instance of an object.
+   at Example.CExample.Main(String[] args)
+\end{verbatim}
+\end{scriptsize}
+
+Dlaczego próba odwołania do elementu, zainicjowanej przecież tablicy, kończy się niepowodzeniem?
+Otóz dzieje się tak dlatego, że w przypadku tablic przechowujących obiekty typów referencyjnych, 
+zainicjowanie tablicy:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+const int IL  = 5;
+CObiekt[] tab = new CObiekt[IL];
+\end{verbatim}
+\end{scriptsize}
+
+spowoduje utworzenie kontenera zawierającego 5 niezainicjowanych referencji. Aby odwoływać się do
+elementów tablicy, należy więc oprócz zainicjowania samej tablicy, zainicjować jej elementy:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+const int IL  = 5;
+CObiekt[] tab = new CObiekt[IL];
+
+for ( int i=0; i<IL; i++ )
+  tab[i] = new CObiekt();
+...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Tablice wielowymiarowe}
+
+Tablice wielowymiarowe deklaruje się w C\# równie łatwo jak jednowymiarowe, zaś ich 
+obsługa również nie nastręcza żadnych trudności. W każdej chwili programista może dowiedzieć się
+jakie są wymiary takiej tablicy:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       int[,,,] tab = new int[3,5,2,6];
+
+       tab[0, 2, 1, 4] = 3;
+
+       Console.WriteLine( "Tablica {0}-wymiarowa.", tab.Rank );
+       for ( int i=0; i<tab.Rank; i++ )
+         Console.WriteLine( "Dlugosc w {0}-tym wymiarze : {1}", 
+	                      i, tab.GetLength(i) );
+    }
+  }
+}
+
+C:\Example>example
+Tablica 4-wymiarowa.
+Dlugosc w 0-tym wymiarze : 3
+Dlugosc w 1-tym wymiarze : 5
+Dlugosc w 2-tym wymiarze : 2
+Dlugosc w 3-tym wymiarze : 6
+\end{verbatim}
+\end{scriptsize}
+
+Pewnym wariantem tablic wielowymiarowych są tzw. {\em tablice postrzępione} (ang. {\em jagged arrays}).
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       int[][] tab = new int[4][];
+
+       tab[0] = new int[6];
+       tab[1] = new int[2];
+       tab[2] = new int[3];
+       tab[3] = new int[5];
+
+       tab[2][2] = 5;       
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Aby zrozumieć różnicę między zwykłymi tablicami wielowymiarowymi, a tablicami postrzępionymi, wyobraźmy
+sobie 2-wymiarową tablicę zadeklarowaną w następujący sposób:
+
+\begin{scriptsize}
+\begin{verbatim}
+int[,] tab = new int[3,3];
+tab[1,1]   = 5;
+\end{verbatim}
+\end{scriptsize}
+
+oraz jej postrzępionego kuzyna
+
+\begin{scriptsize}
+\begin{verbatim}
+int[][] tab = new int[10][];
+tab[0]      = new int[3];
+tab[1]      = new int[2];
+tab[2]      = new int[1];
+tab[1][1]   = 5;
+\end{verbatim}
+\end{scriptsize}
+
+Tablica dwuwymiarowa ma dokładnie 9 elementów ułożonych w prostokątną macierz 3 na 3 elementy. W przeciwieństwie
+do niej, tablica postrzępiona przechowuje referencje do trzech tablic, z których pierwsza ma 3 elementy,
+druga 2, a trzecia tylko 1. 
+
+Zarówno w jednym jak i w drugim przypadku z punktu widzenia użytkownika są to tablice dwuwymiarowe, jednak
+tablica postrzępiona może optymalniej wykorzystywać zasoby pamięci, definując w razie potrzeby krótsze lub 
+dłuższe "podtablice". Można więc powiedzieć, że $n$-wymiarowa tablica jest po prostu macierzą $n$-wymiarową,
+zaś $n$-wymiarowa tablica postrzępiona to w istocie $n$ niezależnych tablic o wymiarze $n-1$, z których
+każda może mieć inne rozmiary.
+
+\subsubsection{{\bf ArrayList}}
+
+Zwykłe tablice zdecydowanie nie rozwiązują problemu kontenerów, bowiem tablice mają bardzo poważną wadę.
+Otóż ilość elementów tablicy musi być znana w momencie inicjowania tablicy. Gdyby w trakcie działania programu
+ilość danych uległa zmianie, programista stanąłby przed zadaniem mozolnego przekopiowania tablicy do innej,
+najprawdopodobniej większej tablicy.
+
+Aby pokonać tę niedogodność należy skorzystać z kolekcji, z których najprostszą jest {\em ArrayList}.
+W przeciwieństwie do na przykład kolekcji z STL w C++, ArrayList i pozostałe kolekcje .NET korzystają
+z jednorodnego interfejsu, traktującego wszystko to co wrzucono do kontenera jako {\em object}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    static void InfoOKolekcji( ArrayList a )
+    {
+      Console.WriteLine( "Kolekcja ma {0} elementow: ", a.Count );
+      foreach ( object o in a )
+        Console.WriteLine( "{0} : {1}", o.GetType(), o );
+    }
+    public static void Main(string[] args)
+    {
+      ArrayList a = new ArrayList();
+      
+      a.Add( 5 );
+      a.Add( 7 );
+      a.Add( 9 );
+      a.Add( true );
+      a.Add( "ala ma kota" );
+      
+      InfoOKolekcji( a );
+    }
+  }
+}
+
+C:\Example>example.exe
+Kolekcja ma 5 elementow:
+System.Int32 : 5
+System.Int32 : 7
+System.Int32 : 9
+System.Boolean : True
+System.String : ala ma kota
+\end{verbatim}
+\end{scriptsize}
+
+Oczywiście sytuacja, w której w jednym kontenerze znajdują się obiekty różnych typów jest dość rzadka.
+Najczęściej programista używa kontenera jak zwykłej tablicy, o której rozmiary nie chce się martwić. 
+Wtedy iteracja przez kolejne elementy może wręcz wymuszać typ elementu
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+foreach ( int i in a )
+  ...
+\end{verbatim}
+\end{scriptsize}
+
+co oczywiście spowoduje wyrzucenie wyjątku, jeśli przypadkiem któryś element kontenera nie jest 
+takiego typu jakiego spodziewa się programista. W przypadku wątpliwości zawsze można rzutować
+dynamicznie
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+foreach ( object o in a )
+  if ( o is int )
+    ...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Kolekcje silnie otypowane}
+
+Programiści, którzy przychodzący ze świata C++, gdzie korzystali z kontenerów z biblioteki STL, niejednokrotnie
+zgłaszają pod adresem kontenerów C\#-owych jedno zastrzeżenie. "Otóż" - jak mawiają - "możliwość umieszczania
+w kontenerze obiektów dowolnego typu, oznacza podatność takich kontenerów na przypadkowe błędy". 
+
+Rzeczywiście, jeśli z jakichś powodów programista spodziewa się w kontenerze obiektów typu {\tt int}, z związku
+z czym napisze gdzieś w kodzie
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+foreach ( int i in a )
+  ...
+\end{verbatim}
+\end{scriptsize}
+
+to może skończyć się to wyrzuceniem wyjątku, w przypadku omyłkowego umieszczenia w kontenerze obiektu innego
+typu. Być może nawet obiekt taki umieszczany jest w kontenerze statycznie:
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+a.Add( "Ala ma kota" );
+  ...
+\end{verbatim}
+\end{scriptsize}
+
+a kompilator mimo to nie zgłasza żadych zastrzeżeń. 
+
+Dzieje się tak dlatego, że jak już powiedziano, kolekcje przechowują referencje do obiektów promując je
+wcześniej do typu {\em object} i dopiero na wyraźne życzenie programista może dowiedzieć się jaki
+jest prawdziwy typ obiektu przechowywanego w kontenerze. Kiedy programista korzysta z C++ kontenera
+{\tt vector<T>}, kompilator jest w stanie {\em statycznie} wychwycić tego rodzaju błąd.
+
+Cóż, z perspektywy programisty kolekcje STL mają zdecydowanie poważniejsze wady (wynikające z tego, że 
+zdefiniowane są w postaci szablonów), których nie można w żaden sposób obejść. Okazuje się za to, że
+w C\# przez utworzenie własnej klasy dziedziczącej z {\bf CollectionBase} można
+zdefiniować kontenery otypowane statycznie. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+public class IntArrayList : System.Collections.CollectionBase
+{
+  public virtual void Add( int i )
+  {
+    InnerList.Add( i );
+  }
+  public int this[int index]
+  {
+    get { return (int)InnerList[index]; }
+  }
+}
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      IntArrayList a = new IntArrayList();
+      a.Add( 4 ); 
+      a.Add( 7 );
+      a.Add( 11 );
+      a.Add( "Ala ma kota" );
+
+      Console.WriteLine( a[2] ); 
+    }
+  }
+}
+
+C:\Example>csc.exe example.cs
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+example.cs(27,7): error CS1502: The best overloaded method match for
+        'IntArrayList.Add(int)' has some invalid arguments
+example.cs(27,14): error CS1503: Argument '1': cannot convert from 'string' to
+        'int'
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Stos, kolejka}
+
+Wbudowane w {\em System.Collections} kontenery {\bf Stack} i {\bf Queue} zachowują się dokładnie tak,
+jak należałoby tego oczekiwać. Oprócz "zwykłych" operacji wstawiania i zdejmowania elementów, 
+zarówno kolejka jak i stos umożliwiają "podejrzenie" aktualnie dostępnej wartości.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Stack s = new Stack();
+
+      s.Push( 4 );
+      s.Push( "Ala ma kota" );
+      s.Push( 3 );
+      s.Pop();
+
+      Console.WriteLine( s.Peek() );
+
+      Queue q = new Queue();
+      q.Enqueue( 4 );
+      q.Enqueue( 5 );
+      Console.WriteLine( q.Peek() );
+
+      q.Dequeue();      
+      Console.WriteLine( q.Peek() );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{{\bf Hashtable}}
+
+{\bf Hashtable} jest {\em kolekcją asocjacyjną}, to znaczy że pamięta pary w postaci klucz $\rightarrow$ wartość.
+Dzięki wewnętrznej strukturze, czas dostępu do wartości skojarzonej z kluczem jest bardzo szybki i nie
+zależy od ilości elementów w kolekcji. 
+
+Hashtable wykorzystuje się na przykład do pamiętania odwzorowań częściowych (par $x$ $\rightarrow$ $f(x)$) lub
+fragmentów tabel bazodanowych (par $ID$ $\rightarrow$ {\em rekord z tabeli}).
+
+W przeciwieństwie do innych kontenerów, element Hashtable'a jest więc parą typu {\tt DictionaryEntry}. 
+Programista musi o tym pamiętać podczas przeglądania kolekcji.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Hashtable h = new Hashtable();
+      h.Add( 5,  "Ala ma kota" );
+      h.Add( 3,  "Kot ma Ale" );
+      h.Add( 18, "Ktos ma cos" );
+
+      foreach ( DictionaryEntry de in h )
+        Console.WriteLine( "Para {0} - {1}", de.Key, de.Value );
+    }
+  }
+}
+
+C:\Example>example.exe
+Para 18 - Ktos ma cos
+Para 5 - Ala ma kota
+Para 3 - Kot ma Ale
+\end{verbatim}
+\end{scriptsize}
+
+Innym sposobem przeglądania Hashtable'a jest przeglądanie kolekcji kluczy oraz kolekcji wartości niezależnie.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Hashtable h = new Hashtable();
+      h.Add( 5,  "Ala ma kota" );
+      h.Add( 3,  "Kot ma Ale" );
+      h.Add( 18, "Ktos ma cos" );
+
+      // przegladaj wartosci
+      foreach ( string s in h.Values )
+        Console.WriteLine( "Wartosc {0}", s );
+
+      // przegladaj klucze, skojrz wartosci
+      foreach ( int key in h.Keys )
+        Console.WriteLine( "Para {0} - {1}", key, h[key] );
+    }
+  }
+}
+
+C:\Example>example.exe
+Wartosc Ktos ma cos
+Wartosc Ala ma kota
+Wartosc Kot ma Ale
+Para 18 - Ktos ma cos
+Para 5 - Ala ma kota
+Para 3 - Kot ma Ale
+\end{verbatim}
+\end{scriptsize}
+
+Pewnym zaskoczeniem może być fakt, że elementy Hashtable'a są ujawniane kolejności {\em innej}, niż 
+były umieszczane w kolekcji. Wyjaśnieniem tego zjawiska i sposobami 
+radzenia sobie z nim zajmiemy się na stronie \pageref{sect:skladanie_enum}.
+
+\subsubsection{Własne kolekcje i interfejs {\bf IEnumerable}}
+
+Istnienie wbudowanych kontenerów nie oznacza, że każdy kolejny tworzony kontener musi dziedziczyć
+z któregoś już zdefiniowanego. Inwencja programistów jest w końcu nieograniczona i wewnętrzna
+reprezentacja jakiegoś kontenera zdefiniowanego przez uzytkownika może być mocno odległa od
+typowej. 
+
+To czego potrzeba, aby kontener spełniał swoje zadanie, to umożliwienie klientowi korzystającemu z niego
+jakiegoś ogólnego mechanizmu przeglądania elementów, tak aby klient nie musiał być świadomy
+wewnętrznej reprezentacji danych w kontenerze.
+
+Taką możliwość daje para interfejsów {\bf IEnumerable} oraz {\bf IEnumerator}.
+
+{\bf IEnumerator} ma 3 elementy:
+
+\begin{description}
+\item [bool MoveNext()] 
+Metoda {\bf MoveNext} służy klientowi do poinformowania interfejsu o tym, że klient chce
+obejrzeć kolejny element kontenera. Metoda ta powinna zwrócić wartość {\em true} jeśli po obejrzeniu
+kolejnego elementu klient może kontytuować przeglądanie oraz {\em false} w przeciwnym przypadku
+
+\item [object Current]
+Propercja {\bf Current} powinna ujawniać bieżący element kontenera. 
+
+\item [void Reset()]
+Metoda {\bf Reset} powinna umożliwić klientowi przywrócenie stanu wyjściowego przeglądania elementów,
+czyli najczęściej ustawienie bieżącego elementu jako pierwszego elementu kontenera.
+\end{description}
+
+{\bf IEnumerable} ma tylko 1 element:
+
+\begin{description}
+\item [IEnumerator GetEnumerator()] 
+Metoda {\bf GetEnumerator} służy do pobrania instancji obiektu pozwalającego przeglądać zawartość
+kolekcji. 
+\end{description}
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class MyCol : IEnumerable
+  {
+     public class MyColEnumerator : IEnumerator
+     {
+        int index;
+        MyCol myCol = null;
+
+        public bool MoveNext()
+        {
+          index++;
+          if ( index >= IL ) 
+            return false;
+          else
+            return true;
+        }     
+
+        public object Current
+        {
+          get { return myCol.t[index]; }
+        }
+ 
+        public void Reset()
+        {
+          index = -1;
+        }
+
+        public MyColEnumerator( MyCol myCol )
+        {
+           this.myCol = myCol;
+           Reset();
+        }        
+     } 
+
+     const int IL = 3;
+     int[] t  = new int[IL];
+
+     public IEnumerator GetEnumerator()
+     {
+       return new MyColEnumerator( this );
+     }     
+
+     public MyCol() 
+     {
+       for ( int i=0; i<IL; i++ ) t[i] = 2*i;
+     }
+  }
+
+
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       MyCol myCol = new MyCol();
+
+       IEnumerator ie = myCol.GetEnumerator();
+       while ( ie.MoveNext() )
+         Console.WriteLine( ie.Current.ToString() );
+    }
+  }
+}
+
+C:\Example>example.exe
+0
+2
+4
+\end{verbatim}
+\end{scriptsize}
+
+Zaimplementowanie interfejsu {\bf IEnumerable} umożliwia także klientom kontenera na przeglądanie go
+za pomocą {\bf foreach}. {\bf Foreach} jest {\bf cukierkiem syntaktycznym}\footnote{Curkierek
+syntaktyczny to sympatyczne tłumaczenie angielskiego terminu {\em syntactic sugar}. Termin ten
+oznacza taki element składni języka, który z jednej strony nie wnosi niczego nowego do możliwości samego języka, 
+z drugiej zaś strony upraszcza kod, bądź czyni go przejrzystszym. Typowym przykładem cukierka syntaktycznego
+jest pętla {\bf for} w rodzinie języków C-podobnych. Język nie straciłby nic, gdyby wyeliminować z niego
+konstrukcję {\bf for (;;)}, bowiem to samo można zawsze wyrazić przy pomocy {\bf while}. Pętla {\bf for}
+jest jednak czytelniejsza.}, który w trakcie kompilacji jest tłumaczony do postaci takiej, jak 
+w powyższym przykładzie. 
+
+\begin{scriptsize}
+\begin{verbatim}
+...
+MyCol myCol = new MyCol();
+
+foreach ( int i in myCol )
+  Console.WriteLine( i.ToString() );
+...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Sortowanie kolekcji}
+
+Framework pozwala rozwiązać problem sortowania w dość elegancki sposób. W przypadku typów prostych
+kryteria sortowania są już ustalone, zaś programista musi jedynie skorzystać z odpowiednich sposobów ich
+użycia. W przypadku własnych typów programista może określić różne porządki sortowania przez użycie
+któregoś z interfejsów: {\bf IComparer} lub {\bf IComparable}.
+
+Zacznijmy od najprostrzego przykładu: sortowania tablic i kolekcji zawierających obiekty typów 
+prostych. Aby osiągnąć zamierzony cel, wystarczy skorzystać ze statycznej funkcji {\tt Array.Sort} w celu
+posortowania tablicy lub metody {\tt Sort} kolekcji typu {\bf ArrayList}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    static void Wypisz( IEnumerable ie )
+    {
+       Console.Write( "{0}: [", ie.GetType() );
+       foreach ( int i in ie )
+         Console.Write( "{0},", i );
+       Console.WriteLine( "]" );
+    }
+
+    public static void Main(string[] args)
+    {
+       const int IL = 10;
+       Random r = new Random();
+
+       int[]      tab = new int[IL];
+       ArrayList atab = new ArrayList();		
+
+       for ( int i=0; i<IL; i++ )
+       {
+         tab[i]   = r.Next()%100;
+         atab.Add(r.Next()%100);
+       }
+
+       Wypisz( tab ); 
+       Array.Sort( tab );
+       Wypisz( tab );  
+
+       Wypisz( atab );
+       atab.Sort();
+       Wypisz( atab );
+    }
+  }
+}
+
+C:\Example>example.exe
+System.Int32[]: [94,43,42,78,52,50,88,47,73,48,]
+System.Int32[]: [42,43,47,48,50,52,73,78,88,94,]
+System.Collections.ArrayList: [29,92,23,60,77,15,99,7,46,15,]
+System.Collections.ArrayList: [7,15,15,23,29,46,60,77,92,99,]
+\end{verbatim}
+\end{scriptsize}
+
+Przy okazji tego przykładu zauważmy, że zarówno tablice jak i kolekcje implementują interfejs {\em IEnumerable},
+zwracający domyślny enumerator do przeglądania elementów w kontenerze. Skorzystaliśmy z tego sprytnie
+przekazując do funkcji {\tt Wypisz} obiekt typu {\em IEnumerable}, dzięki czemu jedna i ta sama
+funkcja służy do przeglądania elementów tablicy i kolekcji. 
+
+Powyższy przykład oczywiście nie rozwiązuje problemu, bowiem w przypadku typów użytkownika funkcje sortujące
+nie miałyby żadnych podstaw do określenia porządku sortowania. 
+
+W najprostrzym scenariuszu programista we własnej klasie implementuje interfejs {\em IComparable}, dzięki
+któremu instancja obiektu wie jak porównać się z inną instancją obiektu. 
+
+Załóżmy, że w klasie {\tt COsoba} mamy pola przechowujące imię i nazwisko i chcemy skonstruować porządek, który
+w pierwszej kolejności porównywałby nazwisko, zaś w przypadku równych nazwisk porównywałby imiona.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class COsoba : IComparable
+  {
+    public string imie;
+    public string nazwisko;
+
+    public int CompareTo( object o )
+    {
+      if ( o is COsoba )
+      {
+        COsoba o2 = o as COsoba;
+        
+        if ( this.nazwisko == o2.nazwisko )
+          return this.imie.CompareTo( o2.imie );
+        else
+          return this.nazwisko.CompareTo( o2.nazwisko );
+      }
+      else
+        return -1;
+    }
+
+    public override string ToString()
+    {
+      return String.Format( "{0} {1}", nazwisko, imie );
+    } 
+
+    public COsoba( string imie, string nazwisko )
+    {
+      this.imie = imie; this.nazwisko = nazwisko;
+    } 
+  }
+
+  public class CExample 
+  {
+    static void Wypisz( IEnumerable ie )
+    {
+       foreach ( object o in ie )
+         Console.WriteLine( "{0},", o );
+    }
+
+    public static void Main(string[] args)
+    {
+       ArrayList atab = new ArrayList();		
+
+       atab.Add( new COsoba( "Jan", "Kowalski" ) );
+       atab.Add( new COsoba( "Zdzisław", "Kowalski" ) );
+       atab.Add( new COsoba( "Jan", "Malinowski" ) );
+       atab.Add( new COsoba( "Tomasz", "Abacki" ) );
+
+       Wypisz( atab );
+       atab.Sort();
+       Wypisz( atab );
+    }
+  }
+}
+
+C:\Example>example.exe
+Kowalski Jan,
+Kowalski Zdzisław,
+Malinowski Jan,
+Abacki Tomasz,
+
+Abacki Tomasz,
+Kowalski Jan,
+Kowalski Zdzisław,
+Malinowski Jan,
+\end{verbatim}
+\end{scriptsize}
+
+Zwróćmy uwagę w jaki sposób odbywa się ustalenie sortowania według 2 pól obiektu: otóż najpierw odbywa się
+porównanie nazwisk, a następnie, w przypadku równości nazwisk, porównanie imion. Porównanie odbywa się
+za pomocą tego samego mechanizmu, który jest właśnie oprogramowywany, czyli za pomocą interfejsu {\em IComparable},
+tyle że tym razem metoda pochodzi z klasy {\em string}.
+
+\begin{scriptsize}
+\begin{verbatim}
+if ( this.nazwisko == o2.nazwisko )
+  return this.imie.CompareTo( o2.imie );
+else
+  return this.nazwisko.CompareTo( o2.nazwisko );
+\end{verbatim}
+\end{scriptsize}
+
+W taki sam sposób można ustalać dowolne kryteria sortowania według dowolnej ilości pól. Co jednak zrobić
+w przypadku, kiedy dla jednego rodzaju obiektów chciałoby się kilka różnych porządków sortowania?
+Załóżmy, że w klasie COsoba dołożymy nowe pole określające wiek osoby i chcielibyśmy aby istniał 
+inny porządek sortowania niż alfabetyczny - na przykład porządek chronologiczny (a może jeszcze jakieś inne)? 
+Jak rozwiązać taki problem, skoro zaimplementowanie interfejsu {\em IComparable} pozwala określić tylko jeden
+porządek sortowania?
+
+Otóż aby określić więcej niż jeden porządek sortowania należy utworzyć jakąś pomocniczą klasę, która
+będzie implementować interfejs {\em IComparer}. Interfejs ten ma tylko jedną metodę {\tt Compare}, która
+służy do porównywania dwóch obiektów. W celu użycia wybranego intefejsu do uporządkowania obiektów
+w kontenerze, należy użyć przeciążonej wersji metody {\tt Sort}, która oczekuje jako parametru właśnie
+obiektu typu {\em IComparer}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class COsoba : IComparable
+  {
+    public class COsobaSortByDataUr : IComparer
+    {
+      public int Compare( object obj1, object obj2 )
+      {
+        COsoba o1 = obj1 as COsoba;
+        COsoba o2 = obj2 as COsoba;
+        
+        return o1.dataUr.CompareTo( o2.dataUr );
+      }
+      public COsobaSortByDataUr() {}
+    }
+
+    public string   imie;
+    public string   nazwisko;
+    public DateTime dataUr;
+
+    public int CompareTo( object o )
+    {
+      if ( o is COsoba )
+      {
+        COsoba o2 = o as COsoba;
+        
+        if ( this.nazwisko == o2.nazwisko )
+          return this.imie.CompareTo( o2.imie );
+        else
+          return this.nazwisko.CompareTo( o2.nazwisko );
+      }
+      else
+        return -1;
+    }
+
+    public override string ToString()
+    {
+      return String.Format( "{0} {1}, ur. {2:d}", nazwisko, imie, dataUr );
+    } 
+
+    public COsoba( string imie, string nazwisko, string dataUr )
+    {
+      this.imie   = imie; this.nazwisko = nazwisko; 
+      this.dataUr = DateTime.Parse( dataUr );
+    } 
+  }
+
+  public class CExample 
+  {
+    static void Wypisz( IEnumerable ie )
+    {
+       Console.WriteLine();
+       foreach ( object o in ie )
+         Console.WriteLine( "{0},", o );
+    }
+
+    public static void Main(string[] args)
+    {
+       ArrayList atab = new ArrayList();		
+
+       atab.Add( new COsoba( "Jan",      "Kowalski", "1994-03-01" ) );
+       atab.Add( new COsoba( "Zdzisław", "Kowalski", "1992-11-29" ) );
+       atab.Add( new COsoba( "Jan",    "Malinowski", "1990-02-16" ) );
+       atab.Add( new COsoba( "Tomasz",   "Abacki"  , "1991-01-12" ) );
+
+       Wypisz( atab );
+       atab.Sort();
+       Wypisz( atab );
+       atab.Sort( new COsoba.COsobaSortByDataUr() );
+       Wypisz( atab );
+
+    }
+  }
+}
+
+C:\Example>example.exe
+
+Kowalski Jan, ur. 1994-03-01,
+Kowalski Zdzisław, ur. 1992-11-29,
+Malinowski Jan, ur. 1990-02-16,
+Abacki Tomasz, ur. 1991-01-12,
+
+Abacki Tomasz, ur. 1991-01-12,
+Kowalski Jan, ur. 1994-03-01,
+Kowalski Zdzisław, ur. 1992-11-29,
+Malinowski Jan, ur. 1990-02-16,
+
+Malinowski Jan, ur. 1990-02-16,
+Abacki Tomasz, ur. 1991-01-12,
+Kowalski Zdzisław, ur. 1992-11-29,
+Kowalski Jan, ur. 1994-03-01,
+\end{verbatim}
+\end{scriptsize}
+
+Zauważmy, że tam gdzie jawnie nie podano odpowiedniego kryterium sortowania, zostanie użyte sortowanie
+określone przez interfejs {\em IComparable} implementowany przez obiekt. Każde inne kryterium musi być
+użyte jawnie.
+
+W powyższym przykładzie klasa udostępniająca interfejs do sortowania została umieszczona wewnątrz
+klasy głównej, aby programista korzystający z niej miał świadomość jej przeznaczenia. Mimo to sposób wywołania
+sortowania nie jest zbyt elegancki:
+
+\begin{scriptsize}
+\begin{verbatim}
+atab.Sort( new COsoba.COsobaSortByDataUr() );
+\end{verbatim}
+\end{scriptsize}
+
+Można uczynić kod nieco przejrzystszym przez dołożenie do klasy {\tt COsoba} publicznej
+statycznej propercji zwracającej odpowiedni obiekt:
+
+\begin{scriptsize}
+\begin{verbatim}
+  ...
+  public class COsoba : IComparable
+  {
+    class COsobaSortByDataUr : IComparer
+    {
+      public int Compare( object obj1, object obj2 )
+      {
+        COsoba o1 = obj1 as COsoba;
+        COsoba o2 = obj2 as COsoba;
+        
+        return o1.dataUr.CompareTo( o2.dataUr );
+      }
+      public COsobaSortByDataUr() {}
+    }
+
+    public string   imie;
+    public string   nazwisko;
+    public DateTime dataUr;
+
+    public static IComparer SortByDataUr
+    {
+       get 
+       { 
+         return (IComparer)(new COsobaSortByDataUr());
+       }
+    }
+    ... 
+\end{verbatim}
+\end{scriptsize}
+
+Klasa implementująca sortowanie nie musi już być publiczna, zaś sortowanie z użyciem odpowiedniego
+kryterium jest już proste:
+
+\begin{scriptsize}
+\begin{verbatim}
+atab.Sort( COsoba.SortByDataUr );
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Opakowywanie enumeratorów}
+
+Intensywne korzystanie z kolekcji znacząco wpływa na wydajność pracy programisty. Kod tworzony jest szybciej,
+jest w nim mniej pomyłek i jest znacznie czytelniejszy.
+
+Załóżmy, że aplikacja rozwija się pomyślnie i w pewnym momencie pojawiają się dodatkowe okolicznosci.
+Elementy jakiegoś kontenera powinny być przeglądnięte, 
+a część z nich, spełniająca jakieś kryteria, usunięta. Naiwnie
+napisalibyśmy coś, co nieoczekowanie kończy się katastrofą!
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       ArrayList atab = new ArrayList();		
+
+       atab.Add( 5 );
+       atab.Add( 10 );
+       atab.Add( 3 );
+
+       foreach ( int i in atab )
+         if ( i < 4 )
+           atab.Remove( i );
+    }
+  }
+}
+
+C:\Example>example.exe
+
+Unhandled Exception: System.InvalidOperationException: Collection was modified;
+enumeration operation may not execute.
+   at System.Collections.ArrayListEnumeratorSimple.MoveNext()
+   at Example.CExample.Main(String[] args)
+\end{verbatim}
+\end{scriptsize}
+
+Natknęliśmy się na dość spory problem - w trakcie enumeracji nie wolno modyfikować zawartości
+kontenera, bowiem enumeracja traci sens, jeśli - obrazowo mówiac - usuwa się jej grunt spod nóg.
+
+Ten problem można rozwiązać na kilka sposobów, na przykład w czasie enumeracji tworząc 
+pomocniczą listę referencji do obiektów, które należy usunąć, a potem usuwać je w kolejnej pętli, lub
+korzystając z innych pętli niż {\em foreach}, gdzie istnieje możliwość wyspecyfikowania bardziej subtelnych
+warunków zakończenia iteracji, uwzględniających możliwe zmiany w zawartości kontenera.
+
+Okazuje się, że można postąpić jeszcze inaczej, definiując enumerator 
+opakowujący\footnote{Autorem pomysłu jest współtwórca C\#, Eric Gunnerson, którego artykuł na ten temat
+można znaleźć na stronach MSDN.}. 
+
+Enumerator taki będzie inicjowany dowolnym obiektem, który implementuje interfejs {\em IEnumerable}, 
+a następnie będzie tworzył kopię referencji do obiektów w źródłowym kontenerze. Jeżeli programista
+zechce obejrzeć opakowane elementy, dostanie do ręki listę tych właśnie kopii referencji do obiektów
+z oryginalnej kolekcji.
+
+Aby skorzystać z iteratora opakowującego, zamiast
+
+\begin{scriptsize}
+\begin{verbatim}
+foreach ( int i in atab )
+  if ( i < 4 )
+    atab.Remove( i );
+\end{verbatim}
+\end{scriptsize}
+
+programista napisze
+
+\begin{scriptsize}
+\begin{verbatim}
+foreach ( int i in new IterIsolate( atab ) )
+  if ( i < 4 )
+    atab.Remove( i );
+\end{verbatim}
+\end{scriptsize}
+
+Wadą takiego rozwiązania jest konieczność tworzenia listy z duplikatami referencji do obiektów
+z oryginalnej kolekcji. Zaletą - niezwykła elegancja kodu. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003. IterIsolate: Eric Gunnerson */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class IterIsolate: IEnumerable
+  {
+    internal class IterIsolateEnumerator: IEnumerator
+    {
+      protected ArrayList items;
+      protected int currentItem;
+
+      internal IterIsolateEnumerator(IEnumerator enumerator)
+      {
+        IterIsolateEnumerator chainedEnumerator = 
+          enumerator as IterIsolateEnumerator;
+
+        if (chainedEnumerator != null)
+        {
+          items = chainedEnumerator.items;					
+        }
+        else
+        {
+          items = new ArrayList();
+          while (enumerator.MoveNext() != false)
+          {
+            items.Add(enumerator.Current);
+          }
+          IDisposable disposable = enumerator as IDisposable;
+          if (disposable != null)
+          {
+            disposable.Dispose();
+          }
+        }
+        currentItem = -1;
+      }
+
+      public void Reset()
+      {
+        currentItem = -1;
+      }
+
+      public bool MoveNext()
+      {
+        currentItem++;
+        if (currentItem == items.Count)
+          return false;
+
+        return true;
+      }
+
+      public object Current
+      {
+        get
+        {
+          return items[currentItem];
+        }
+      }
+    }
+
+    public IterIsolate(IEnumerable enumerable)
+    {
+      this.enumerable = enumerable;
+    }
+
+    public IEnumerator GetEnumerator()
+    {
+      return new IterIsolateEnumerator(enumerable.GetEnumerator());
+    }
+
+    protected IEnumerable enumerable;
+  }
+
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+       ArrayList atab = new ArrayList();		
+
+       atab.Add( 5 );
+       atab.Add( 10 );
+       atab.Add( 3 );
+
+       foreach ( int i in new IterIsolate( atab ) )
+         if ( i < 4 )
+           atab.Remove( i );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+\label{sect:skladanie_enum}
+
+Bardzo podobnego pomysłu można użyć do rozwiązania problemu przeglądania elementów kolekcji
+{\em Hashtable} w ustalonej przez programistę kolejności. W tym celu utworzymy nowy enumerator
+opakowujący, który utworzy kopie referencji i posortuje je w ustalonej kolejności.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{
+  public class IterIsolate: IEnumerable
+  {
+    ... jak wyżej ...
+  }
+
+  public class IterSort: IterIsolate, IEnumerable
+  {
+    internal class IterSortEnumerator: IterIsolateEnumerator, IEnumerator
+    {
+      internal IterSortEnumerator(IEnumerator enumerator, IComparer comparer): base(enumerator)
+      {
+        if (comparer != null)
+        {
+          items.Sort(comparer);
+        }
+        else
+        {
+          items.Sort();
+        }
+      }
+    }
+
+    public IterSort(IEnumerable enumerable): base(enumerable) {}
+
+    public IterSort(IEnumerable enumerable, IComparer comparer): base(enumerable)
+    {
+      this.comparer = comparer;
+    }
+
+    public new IEnumerator GetEnumerator()
+    {
+      return new IterSortEnumerator(enumerable.GetEnumerator(), comparer);
+    }
+    IComparer comparer;
+  }
+
+  public class COsoba : IComparable
+  {
+    ... jak wyżej ...
+  }
+
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      Hashtable hOsoby = new Hashtable();
+
+      // w kolekcji pamiętamy pary : ID -> Osoba
+      hOsoby.Add( 7,  new COsoba( "Jan",      "Kowalski", "1994-03-01" ) );
+      hOsoby.Add( 10, new COsoba( "Zdzisław", "Kowalski", "1992-11-29" ) );
+      hOsoby.Add( 3,  new COsoba( "Jan",    "Malinowski", "1990-02-16" ) );
+      hOsoby.Add( 17, new COsoba( "Tomasz",   "Abacki"  , "1991-01-12" ) );
+
+      // przeglądaj kolekcję
+      foreach ( COsoba o in hOsoby.Values )
+        Console.WriteLine( o.ToString() );
+
+      Console.WriteLine();
+       
+      // przeglądaj posortowaną kolekcję
+      foreach ( COsoba o in new IterSort( hOsoby.Values, COsoba.SortByDataUr ) )
+        Console.WriteLine( o.ToString() );
+    }
+  }
+}
+
+C:\Example>example.exe
+Kowalski Zdzisław, ur. 1992-11-29
+Kowalski Jan, ur. 1994-03-01
+Abacki Tomasz, ur. 1991-01-12
+Malinowski Jan, ur. 1990-02-16
+
+Malinowski Jan, ur. 1990-02-16
+Abacki Tomasz, ur. 1991-01-12
+Kowalski Zdzisław, ur. 1992-11-29
+Kowalski Jan, ur. 1994-03-01
+\end{verbatim}
+\end{scriptsize}
+
+W podoby sposób można utworzyć inne enumeratory opakowujące, na przykład {\tt IterSelect}, który jako
+parametr przyjąłby predykat przyjmujący jako parametr obiekt z kolekcji i zwracający wartości 
+{\em true} lub {\em false}. Podczas przeglądania kolekcji taki enumerator udostępniałby tylko
+te obiekty z kolekcji, dla których wartość predykatu byłaby równa {\em true}. 
+
+\begin{scriptsize}
+\begin{verbatim}
+public delegate bool IterSelectDelegate(object o);
+	
+public class IterSelect: IterIsolate, IEnumerable
+{
+  internal class IterSelectEnumerator: IterIsolateEnumerator, IEnumerator
+  {
+    internal IterSelectEnumerator(IEnumerator enumerator, 
+                             IterSelectDelegate selector): base(enumerator)
+    {
+      for (int index = items.Count - 1; index >= 0; index--)
+      {
+        if (!selector(items[index]))
+          items.RemoveAt(index);
+      }
+
+      currentItem = items.Count;
+    }
+
+    public new void Reset()
+    {
+      currentItem = items.Count;
+    }
+
+    public new bool MoveNext()
+    {
+      currentItem--;
+      if (currentItem < 0)
+        return false;
+
+      return true;
+    }
+  }
+
+  public IterSelect(IEnumerable enumerable, IterSelectDelegate selector): base(enumerable)
+  {
+    this.selector = selector;
+  }
+
+  public new IEnumerator GetEnumerator()
+  {
+    return new IterSelectEnumerator(enumerable.GetEnumerator(), selector);
+  }
+
+  IterSelectDelegate selector;
+}
+\end{verbatim}
+\end{scriptsize}
+
+Dzięki możliwości składania takich enumeratorów, programista mógłby więc napisać:
+
+\begin{scriptsize}
+\begin{verbatim}
+foreach ( COsoba o in 
+  new IterSelect( 
+     new IterSort( hOsoby, COsoba.SortByDataUr ), 
+        COsoba.RokUrodzenia( 1990 ) ) )
+{
+   // posortowane obiekty COsoba z kolekcji hOsoby
+   // ale tylko te urodzone w 1990 roku
+}
+\end{verbatim}
+\end{scriptsize}
+

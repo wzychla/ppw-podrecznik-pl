@@ -1,0 +1,270 @@
+﻿\subsection{Łączenie kodu z różnych języków}
+
+\subsubsection{Zasady łączenia kodu różnych języków}
+
+Platforma .NET pozwala z niespotykaną wcześniej łatwością łączyć kod napisany w różnych językach.
+Dowolny kompilator może produkować biblioteki kodu, które następnie mogą być używane z poziomu innych języków.
+W poniższym przykładzie kod klasy napisanej w VB.NET jest wykorzystywany w programie napisanym w C\#.
+
+\begin{scriptsize}
+\begin{verbatim}
+// CMainForm.vb
+Imports System
+Imports System.Drawing
+Imports System.Windows.Forms
+
+Namespace MainModule
+	
+  Public Class CMainForm
+    Inherits System.Windows.Forms.Form
+
+    Public Sub New
+      MyBase.New()
+    End Sub
+
+    Protected Overrides Sub OnPaint( e As PaintEventArgs )
+      Dim g as Graphics = e.Graphics
+      Dim f as Font     = new Font( "Times New Roman", 48 )
+
+      Dim sf as StringFormat = new StringFormat()
+
+      sf.Alignment     = StringAlignment.Center
+      sf.LineAlignment = StringAlignment.Center
+
+      g.Clear( SystemColors.Control )
+      g.DrawString( "VB.NET", f, Brushes.Black, _
+          Me.Width / 2, Me.Height / 2, sf )
+
+
+     End Sub
+		
+  End Class
+	
+End Namespace
+
+// CExample.cs
+using System;
+using System.Windows.Forms;
+
+using MainModule;
+
+class CExample 
+{
+  public static void Main()
+  {
+    Application.Run( new CMainForm() );
+  }  
+}
+
+C:\example>vbc.exe /target:library CMainForm.vb
+Microsoft (R) Visual Basic .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.00.3705.288
+Copyright (C) Microsoft Corporation 1987-2001. All rights reserved.
+
+
+C:\example>csc.exe /r:CMainForm.dll CExample.cs
+Microsoft (R) Visual C# .NET Compiler version 7.00.9466
+for Microsoft (R) .NET Framework version 1.0.3705
+Copyright (C) Microsoft Corporation 2001. All rights reserved.
+
+\end{verbatim}
+\end{scriptsize}
+
+Aby możliwa była współpraca kodu napisanego w różnych językach, oczywistym wydaje się być wymaganie, aby
+języki te spełniały pewne warunki. W przypadku języków projektowanych z myślą o platformie .NET 
+sprawa jest prosta. Trudności pojawiają się w przypadku języków dostosowywanych do wymogów platformy .NET,
+na przykład języków funkcjonalnych. Przykład kompilatora SML.NET pokazuje, że takie trudności można
+z powodzeniem pokonywać.
+
+Czy więc współistnienie wielu języków w obrębie jednej platformy oznacza, że z poziomu kodu C\# można wprost
+wołać kod z na przykład SML.NET?
+
+Otóż nie do końca tak jest. Aby języki mogły współpracować ze sobą, konieczne jest aby komunikacja odbywała
+się za pomocą dość rygorystycznych reguł określanych przez specyfikację CTS (była już o tym mowa). Oznacza to, że
+moduł SMLowy może dowolnie korzystać z możliwości SMLa, ale po to aby pobrać parametry i oddać wyniki
+do modułu C\#owego, musi na przykład opakować je w klasy, o które rozszerzono składnię SMLa. Dzięki temu, że
+częścią CTS jest definicja typów prostych, wymiana informacji między różnymi językami nie jest trudna: typy
+proste przekazuje sie wprost, typy złożone opakowuje się w struktury lub klasy. 
+
+Poniższy prosty przykład pokazuje jak klasę napisaną w C\# można wykorzystać w kodzie SML.NET.
+
+\begin{scriptsize}
+\begin{verbatim}
+// pola.cs
+namespace NExample
+{
+  public class CExample
+  {
+    // pola statyczne
+    public static readonly string pole_statyczne_readonly = 
+      System.String.Concat("SML.", "NET");
+    public static int pole_statyczne = 23;
+
+    // pola
+    public int pole;
+
+    public CExample( int n ) 
+    { 
+      pole = n; 
+    }
+  }
+}
+
+(* pola_demo.sml *)
+structure pola_demo =
+struct
+
+fun main () =
+let
+  val c = NExample.CExample( 156 )
+in
+  print ("Pole statyczne readonly " ^ valOf(NExample.CExample.pole_statyczne_readonly) ^ "\n");
+  print ("Pole statyczne " ^ Int.toString(!NExample.CExample.pole_statyczne) ^ "\n");
+  NExample.CExample.pole_statyczne := 17;
+  print ("Pole statyczne " ^ Int.toString(!NExample.CExample.pole_statyczne) ^ "\n");
+  print ("Pole " ^ Int.toString(!(c.#pole)) ^ "\n");
+  c.#pole := 77;
+  print ("Pole " ^ Int.toString(!(c.#pole)) ^ "\n")
+
+end
+
+end
+
+C:\Example>csc /nologo /t:library pola.cs
+C:\Example>smlnet -reference:pola pola_demo
+C:\Example>pola_demo.exe
+Pole statyczne readonly SML.NET
+Pole statyczne 23
+Pole statyczne 17
+Pole 156
+Pole 77
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Pułapki}
+
+Podczas łączenia kodu napisanego w różnych językach programista może natknąć się na przeróżne problemy.
+Jednym z najsubtelniejszych z nich jest problem poelgający na zbudowaniu różnych języków w oparciu
+o inne modele obiektowe.
+
+Rozważmy następujący przykład kodu w C\#.
+
+\begin{scriptsize}
+\begin{verbatim}
+using System;
+using System.Windows.Forms;
+
+namespace CPulapka
+{
+  public class A 
+  {
+    public virtual void Q( int k )
+    {
+      Console.WriteLine( "A::Q(int)" );
+    }  
+  }
+
+  public class B : A
+  {
+    public virtual void Q( double d )
+    {
+      Console.WriteLine( "B::Q(double)" );
+    }  
+
+    public static void Main()
+    {
+      B b = new B();
+      b.Q( 1.0 ); // tu jest OK!
+      b.Q( 1 );   // a tu?
+    }
+  }
+}
+
+C:\example>CExample.exe
+B::Q(double)
+B::Q(double)
+\end{verbatim}
+\end{scriptsize}
+
+Taki a nie inny wynik działania programu może być w pierwszej chwili dość nieoczekiwany. W klasie {\bf A} 
+zdefiniowano bowiem metodę {\bf Q(int)}, która wydaje się lepiej pasować do wywołania {\tt b.Q( 1 )} niż
+przeciążona w klasie {\bf B} metoda {\bf Q( double )}. 
+
+Kompilator C\# kieruje się jednak jednoznacznymi regułami dopasowania funkcji, określonymi
+w specyfikacji języka. Reguły te mówią, że jeżeli możliwe jest dopasowanie parametrów do funkcji
+zdefiniowanej w klasie bieżącej, to funkcja taka zostanie wywołana, mimo że w klasie bazowej może istnieć
+funkcja, która w danym kontekście mogłaby być bardziej właściwa (zauważmy, że konwersja 
+{\bf int}$\rightarrow${\bf double}, która jest konieczna aby wywołać funkcję {\bf B::Q(double)} jest
+{\em gorsza} niż konwersja {\bf int}$\rightarrow${\bf int}, która miałaby miejsce, gdyby 
+w {\tt b.Q(1)} wywołana była funkcja {\bf A::Q(int)}).
+
+Najbardziej właściwe pytanie, które należałoby zadać w tym miejscu brzmi: a co się stanie, jeśli
+w innym języku programowania reguły te wyglądają inaczej i spróbujemy połączyć kod takich dwóch
+języków?
+
+Cóż, przekonajmy się:
+
+\begin{scriptsize}
+\begin{verbatim}
+// CExample.cs -> CExample.dll
+using System;
+using System.Windows.Forms;
+
+namespace CPulapka
+{
+  public class A 
+  {
+    public virtual void Q( int k )
+    {
+      Console.WriteLine( "A::Q(int)" );
+    }  
+  }
+
+  public class B : A
+  {
+    public virtual void Q( double d )
+    {
+      Console.WriteLine( "B::Q(double)" );
+    }  
+  }
+}
+
+// CTest.vb kompilowany z referencją do CExample.dll
+Imports System
+Imports System.Drawing
+Imports System.Windows.Forms
+
+Imports CPulapka
+
+Module MainModule
+
+  Sub Main
+    Dim b as B
+    b = new B()
+
+    b.Q( 1.0 )
+    b.Q( 1 )
+  End Sub
+	
+End Module
+
+C:\example>CTest.exe
+B::Q(double)
+A::Q(int)
+\end{verbatim}
+\end{scriptsize}
+
+Wynik tekstu potwierdza, że wybierając funkcję do wywołania w danym kontekście, kompilator
+danego języka kieruje się swoimi własnymi regułami. W tym przypadku kompilator języka VB.NET
+do wywołania {\tt b.Q(1)} dopasował funkcję {\bf A::Q(int)} w przeciwieństwie do kompilatora C\#, który
+(jak widzieliśmy) w tym samym przypadku wybrałby funkcję {\bf B::Q(double)}.
+
+Przykład ten jest bardzo pouczający. Świadczy on o tym, że mimo możliwości integracji w obrębie jednej
+platformy uruchomieniowej, języki programowania mogą zachowywać dużą dozę niezależności. W końcu gdyby
+każdy język trzeba było "na siłę" dopasować do jakichś reguł, zmieniając jednocześnie jego semantykę,
+to cała idea .NET byłaby niewiele warta - oznaczałaby bowiem powstanie tak naprawdę jednego sposobu
+"ewaluacji" programów, tyle że ubranego w składnie innych języków. W chwili obecnej zaś, programista 
+chcący skorzystać z możliwości łączenia kodu różnych języków musi być po prostu świadomy możliwych
+problemów z tym związanych - problemów, podkreślmy, natury dość głębokiej i wynikającej z dużych
+różnic koncepcyjnych pomiędzy językami i ich modelami obiektowymi. Od strony czysto "technicznej"
+platforma .NET daje wyjątkową możliwość bezproblemowego łączenia kodu dowolnych języków programowania.

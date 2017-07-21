@@ -1,0 +1,328 @@
+﻿\subsection{Klasa {\em string}}
+
+\subsubsection{Podstawowe możliwości klasy {\em string}}
+
+Obsługa napisów możliwa jest w C\# dzięki klasie {\em string}. Każdy obiekt tej klasy ma dostęp do
+wielu przydatnych propercji i metod. 
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    public static void Main()
+    {
+      string s = "Ala ma kota";
+      Console.WriteLine( "Length('{0}'): {1}", s, s.Length );
+    	
+      Console.WriteLine( "ToLower: '{0}', ToUpper: '{1}'", 
+                        s.ToLower(), s.ToUpper() );
+    	
+      string sS = "Ala";
+      if ( s.StartsWith( sS ) )
+        Console.WriteLine( "'{0}' StartsWith '{1}'", s, sS );
+    	
+      string sE = "ota";
+      if ( s.EndsWith( sE ) )
+        Console.WriteLine( "'{0}' EndsWith '{1}'", s, sE );
+    	
+      Console.WriteLine( "Remove(2,3): '{0}'", s.Remove( 2, 3 ) );
+    	
+      string sI = "!++!";
+      Console.WriteLine( "Insert(3, {1}): '{0}'", s.Insert( 3, sI ), sI );
+    	
+      Console.WriteLine( "Substring(4, 2): '{0}'", s.Substring( 4, 2 ) );
+    	
+      Console.WriteLine( "IndexOf( 'a' ): '{0}'", s.IndexOf( 'a' ) );
+      Console.WriteLine( "LastIndexOf( 'a' ): '{0}'", s.LastIndexOf( 'a' ) );    	      
+    	
+      Console.WriteLine( "PadLeft( 20, '_' ): '{0}'", s.PadLeft( 20, '_' ) );
+    	
+      string sT = "   qwerty    ";
+      Console.WriteLine( "Trim('{0}'): '{1}'", sT, sT.Trim() );
+    }
+  }
+}
+
+C:\Example>example.exe
+Length('Ala ma kota'): 11
+ToLower: 'ala ma kota', ToUpper: 'ALA MA KOTA'
+'Ala ma kota' StartsWith 'Ala'
+'Ala ma kota' EndsWith 'ota'
+Remove(2,3): 'Ala kota'
+Insert(3, !++!): 'Ala!++! ma kota'
+Substring(4, 2): 'ma'
+IndexOf( 'a' ): '2'
+LastIndexOf( 'a' ): '10'
+PadLeft( 20, '_' ): '_________Ala ma kota'
+Trim('   qwerty    '): 'qwerty'
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Formatowanie}
+
+C\# udostępnia bardzo elegancki sposób formatowania napisów, przypominającą trochę sposób formatowania
+znany z C, jednak znacznie udoskonalony. Programista przygotowuje formatowany napis, przetykany wyrażeniami
+formatującymi, zawierającymi numery kolejnych parametrów dla formatowanego napisu wraz ze wskazaniem
+sposobu formatowania.
+
+Zobaczmy najpierw prosty przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    public static void Main()
+    {
+      string s = "{0}+{1}={2}\r\n{0}+{2}={3}\r\n{2}+{3}={4}";
+      int i0 = 17, i1 = 23;	
+      Console.WriteLine( s, i0, i1, i0+i1, 2*i0+i1, 3*i0+2*i1 );
+    }
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Wyższość takiego sposobu przekazywania parametrów dla wyrażeń formatujących nad tym dostępnym w C polega na tym,
+że wyrażenie formatujące zawiera w sobie numer parametru, w związku z czym ten sam parametr może w napisie
+występować wiele razy bez konieczności powtarzania go na liście parametrów, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+Console.WriteLine( "{0}, {0}, {0}, {0}", 1 );
+\end{verbatim}
+\end{scriptsize}
+
+Wyniki formatowania mogą być przekazane nie tylko do konsoli, ale do zmiennej typu {\em string}, dzięki
+statycznej funkcji {\em Format} w klasie {\em string}, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+string s = "{0}+{1}={2}\r\n{0}+{2}={3}\r\n{2}+{3}={4}";
+int i0 = 17, i1 = 23;	
+
+string sResult = String.Format( s, i0, i1, i0+i1, 2*i0+i1, 3*i0+2*i1 );
+\end{verbatim}
+\end{scriptsize}
+
+Standardowy sposób formatowania wartości numerycznych pozwala, oprócz numeru parametru, dodać do
+wyrażenia formatującego także długość pola oraz sposób formatowania, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+Console.WriteLine(
+    "{0,5} {1,5}", 123, 456);      // wyrównaj do prawej
+Console.WriteLine(
+    "{0,-5} {1,-5}", 123, 456);    // wyrównaj do lewej
+
+  123   456
+123   456
+\end{verbatim}
+\end{scriptsize}
+
+Dostępne sposoby formatowania wyrażeń numerycznych:
+
+\begin{center}
+$$\begin{array}{ll}
+\mbox{Znak formatujący} & \mbox{Interpretacja}  \\
+\hline \\
+\mbox{C lub c} & \mbox{Finansowa}   \\
+\mbox{D lub d} & \mbox{Dziesiętna}  \\
+\mbox{E lub e} & \mbox{Wykładnicza} \\
+\mbox{F lub f} & \mbox{Ustalona ilość pozycji dziesiętnych} \\
+\mbox{G lub g} & \mbox{Ogólna}      \\
+\mbox{N lub n} & \mbox{Numeryczna}  \\ 
+\mbox{P lub p} & \mbox{Procentowa}  \\
+\mbox{R lub r} & \mbox{Możliwa do ponownego sparsowania} \\
+\mbox{X lub x} & \mbox{Heksadecymalna}
+\end{array}$$
+\end{center}
+
+Przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Collections;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    public static void Main()
+    {
+      int i = 123456;
+      Console.WriteLine("{0:C}", i); 
+      Console.WriteLine("{0:D}", i); 
+      Console.WriteLine("{0:E}", i); 
+      Console.WriteLine("{0:F}", i); 
+      Console.WriteLine("{0:G}", i); 
+      Console.WriteLine("{0:N}", i); 
+      Console.WriteLine("{0:P}", i); 
+      Console.WriteLine("{0:X}", i); 
+      
+      Console.WriteLine();
+      
+      double d = 123.456;
+      Console.WriteLine("{0:E}", d); 
+      Console.WriteLine("{0:F}", d); 
+      Console.WriteLine("{0:G}", d); 
+      Console.WriteLine("{0:N}", d); 
+      Console.WriteLine("{0:P}", d); 
+      Console.WriteLine("{0:R}", d);     	
+    }
+  }
+}
+
+C:\Example>example.exe
+123_456,00 zł
+123456
+1,234560E+005
+123456,00
+123456
+123_456,00
+12_345_600,00%
+1E240
+
+1,234560E+002
+123,46
+123,456
+123,46
+12_345,60%
+123,456
+\end{verbatim}
+\end{scriptsize}
+
+Programista może wyposażyć własne obiekty w możliwość dowolnego zadawania parametrów formatowania. 
+Umożliwia to interfejs {\em IFormattable}.
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+
+namespace Example
+{
+  class CFormatExample : IFormattable
+  {
+     public int    ie;
+     public string se;
+
+     private CFormatExample() {}
+     public  CFormatExample( int ie, string se )
+     {
+       this.ie = ie; this.se = se;
+     }
+     public string ToString( string format, IFormatProvider fp )
+     {
+       switch ( format )
+       {
+          case "A" : return ie.ToString();
+          case "B" : return se;
+          default  : return String.Format( "{0}:{1}", ie, se );
+
+       } 
+     } 
+  }
+  public class CExample 
+  {
+    public static void Main(string[] args)
+    {
+      CFormatExample fe = new CFormatExample( 17, "Ala ma kota" );
+       
+      Console.WriteLine( String.Format( "{0}", fe ) );
+      Console.WriteLine( String.Format( "{0:A}", fe ) );
+      Console.WriteLine( String.Format( "{0:B}", fe ) );
+    }
+  }
+}
+
+C:\Example>example.exe
+17:Ala ma kota
+17
+Ala ma kota
+\end{verbatim}
+\end{scriptsize}
+
+
+\subsubsection{Encoding}
+
+Klasyczny problem związany z obsługą napisów to konwersja napisu do tablicy znaków i tablicy znaków do
+napisu. Klasycznie do tego problemu podchodzi się traktując napis jako tablicę znaków (tak jest na przykład
+w C).
+
+Zauważmy jednak, że istnieje wiele możliwych standardów kodowania znaków. Niekoniecznie kod znaku w standardzie
+ASCII musi być taki sam jak w standardzie UNICODE, pewne znaki mogą wręcz być niedostępne w jednych standardach
+a dostępne w innych.
+
+W C\# udostępniono klasę {\em System.Text.Encoding}, za pomocą której można konwertować napisy i tablice
+znaków w następujących standardach:
+
+\begin{center}
+$$\begin{array}{ll}
+\mbox{Standard kodowania} & \mbox{Uwagi}  \\
+\hline \\
+\mbox{ASCII} & \mbox{}   \\
+\mbox{BigEndianUnicode} & \mbox{}  \\
+\mbox{Unicode} & \mbox{} \\
+\mbox{UTF7} & \mbox{Unicode, strona kodowa 65000} \\
+\mbox{UTF8} & \mbox{Unicode, strona kodowa 65001}
+\end{array}$$
+\end{center}
+
+Przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+/* Wiktor Zychla, 2003 */
+using System;
+using System.Text;
+
+namespace Example
+{ 
+  public class CMain
+  {    
+    public static void Main()
+    {
+        byte[] ba = new byte[]
+            {72, 101, 108, 108, 111};
+        string s = Encoding.ASCII.GetString(ba);
+        Console.WriteLine(s);
+    	
+    	string sP = "Chrząszcz chrzęści w Żyrardówku";
+    	byte[] unicodeB = Encoding.Unicode.GetBytes( sP );
+    	char[] unicodeC = Encoding.Unicode.GetChars( unicodeB );
+
+        Console.WriteLine();
+    	foreach ( byte b in unicodeB )
+    	  Console.Write( "{0:D3} ", b );
+        Console.WriteLine();
+    	foreach ( char c in unicodeC )
+    	  Console.Write( "{0} ", c );
+    }
+  }
+}
+
+C:\Example>example
+Hello
+
+067 000 104 000 114 000 122 000 005 001 115 000 122 000 099 000 122 000 032 000
+099 000 104 000 114 000 122 000 025 001 091 001 099 000 105 000 032 000 119 000
+032 000 123 001 121 000 114 000 097 000 114 000 100 000 243 000 119 000 107 000
+117 000
+C h r z ą s z c z   c h r z ę ś c i   w   Ż y r a r d ó w k u
+\end{verbatim}
+\end{scriptsize}
+

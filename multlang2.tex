@@ -1,0 +1,522 @@
+﻿\subsection{ILAsm}
+\label{langIL}
+
+MSIL jest językiem pośrednim, do którego kompilowane są wszystkie języki platformy .NET. Wśród
+nich szczególną pozycję ma ILAsm ({\em Intermediate Language Assembler}), czyli język
+niskiego poziomu bezpośrednio tłumaczący się do kodu pośredniego MSIL.
+
+Oczywiście znajomość języka ILAsm nie jest niezbędna aby pisać programy dla środowiska .NET. 
+Czasami jednak warto zdekompilować program (rozdział \ref{csDekompilacja}) C\#owy i zobaczyć
+jak wygląda kod jakiegoś interesującego fragmentu.
+
+Znajomość języka pośredniego jest oczywiście niezbędna z punktu widzenia twórcy nowego języka czy kompilatora
+dla platformy .NET. Kod ILAsmowy może korzystać z wyjątków i wołać funkcje z bibliotek .NET. Mimo, że
+znacznie ułatwia tworzenie kodu wynikowego dla języków obiektowych, nadaje się równie dobrze wszystkich
+typów języków. W kolejnym rozdziale zobaczymy przykłady kodu produkowanego przez kompilator SML.NET.
+
+\subsubsection{Informacje ogólne}
+
+Z punktu widzenia kodu ILAsmowego, najistotniejszym elementem środowiska jest stos. Stos służy do przekazywania
+parametrów do funkcji i zbierania wyników funkcji. Na stosie można umieszczać obiekty typów
+prostych i referencyjnych (wtedy na stosie znajduje się referencja do obiektu, zaś wartość obiektu znajduje się
+na stercie). Programista może przekazywać wartości obiektów między stosem a zmiennymi lokalnymi kodu.
+Do przekazania wartości na stos służą instrukcje w postaci {\bf ld...}, zaś do pobrania
+wartości ze stosu i umieszczenia ich w zmiennych lokalnych instrukcje postaci {\bf st...}.
+
+Wykonanie funkcji w IlAsm składa się z trzech kroków:
+\begin{enumerate}
+\item Położenie na stosie parametrów wejściowych funkcji
+\item Wywołanie funkcji
+\item Zdjęcie ze stosu wyników funkcji
+\end{enumerate}
+
+Pierwszy i ostatni krok są opcjonalne i oczywiście zależą od postaci funkcji. 
+
+IL jako język niskopoziomowy ma dość duże możliwości. 
+Ma m.in. instrukcje do obsługi tablic, obiektów oraz wyjątków.
+Potrafi obsługiwać ogonowe wywołania funkcji, delegatów i zdarzenia.
+
+\subsubsection{Pierwszy program w ILAsm}
+
+Najprostszy program w ILAsm po prostu wypisze tekst powitalny na ekranie.
+
+\begin{scriptsize}
+\begin{verbatim}
+.assembly extern mscorlib {}
+.assembly Example{} 
+.class public CExample extends [mscorlib]System.Object
+{ 
+  .method public static void MyAppStart() il managed 
+  { 
+    .entrypoint 
+    .maxstack 8
+
+    // umieść na stosie napis
+    ldstr "Pierwszy program w ILAsm..." 
+
+    // wołaj funkcję Console.WriteLine( string )
+    call void [mscorlib] System.Console::WriteLine
+              (class System.String)
+
+    ret 
+  } 
+}
+\end{verbatim}
+\end{scriptsize}
+
+Dyrektywa {\bf .assembly extern} informuje kompilator o konieczności importu informacji o funkcjach
+z zewnętrznej biblioteki. W tym przypadku chodzi o bibliotekę {\bf mscorlib}, która jest
+rdzeniem całego środowiska .NET i trudno wyobrazić sobie program niekorzystający z tej biblioteki.
+
+Dyrektywa {\bf .assembly} definiuje nowy moduł do kompilacji, w tym przypadku chodzi o 
+program, który właśnie piszemy.
+
+Dyrektywa {\bf .class} definiuje nowy
+typ, jednak jest ona opcjonalna - IlAsm może z powodzeniem tworzyć kod nieobiektowy. W naszym
+przykładzie nowym typem jest typ referencyjny (klasa), dziedziczący z klasy {\bf System.Object}. 
+
+W przeciwieństwie do C\# czy VB.NET, część definicji typu w ILAsm może być umieszczona w pewnym
+miejscu kodu, a inna część w innym miejscu kodu. Definicja jednego i tego samego typu może
+nawet rozciągać się na kilka plików z kodem źródłowym.
+
+Struktury, czyli typy proste, wyprowadza się z klasy {\bf System.ValueType} zamiast z {\bf System.Object}.
+
+Dyrektywa {\bf .method} rozpoczyna definicję kodu nowej metody. Specjalne oznaczenie {\bf il managed} oznacza, że
+kod metody napisany jest w ILAsm i powinien podlegać wszelkim regułom narzucanym przez platformę .NET. 
+Kod natywny można specyfikować za pomocą oznaczenia {\bf native unmanaged}.
+
+Dyrektywa {\bf .entrypoint} określa miejsce startu aplikacji. Co ciekawe, odpowiednia funkcja może
+mieć dowolną nazwę, niekoniecznie {\bf Main}.
+
+Dyrektywa {\bf .maxstack} określa maksymalną głębokość stosu metody.
+
+Instrukcja {\bf ldstr} powoduje umieszczenie na stosie napisu przekazanego jako parametr. Instrukcja
+{\bf call} powoduje wywołanie funkcji ze wskazanej biblioteki i wskazanej klasy. Funkcja ta
+szuka na stosie odpowiednich parametrów, zdejmuje je, po czym wykonuje swój kod.
+
+Powyższy przykładowy kod może być skompilowany i uruchomiony:
+
+\begin{scriptsize}
+\begin{verbatim}
+C:\Example)ilasm example.il
+
+Microsoft (R) .NET Framework IL Assembler.  Version 1.0.3705.0
+Copyright (C) Microsoft Corporation 1998-2001. All rights reserved.
+Assembling 'example.il' , no listing file, to EXE --) 'example.EXE'
+Source file is ANSI
+
+Assembled method CExample::MyAppStart
+Creating PE file
+
+Emitting members:
+Global
+Class 1 Methods: 1;
+Writing PE file
+Operation completed successfully
+
+C:\Example)example
+Pierwszy program w ILAsm...
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Stałe i zmienne}
+
+Stałe numeryczne mogą być ładowane bezpośrednio na stos za pomocą instrukcji:
+\begin{itemize}
+\item stałe całkowitoliczbowe - {\bf ldc.i4 (int32)}, {\bf ldc.l4.s (int8)} ({\bf .s} na końcu instrukcji
+zawsze oznacza "krótką" wersję instrukcji, czyli taką, która przyjmuje parametr o mniejszym zakresie danych
+niż "pełna" instrukcja) oraz {\bf ldc.i8 (int64)}
+\item stałe całkowitoliczbowe między 0 a 8 - {\bf ldc.i4.(0-8)}
+\item stałe zmiennoprzecinkowe - {\bf ldc.r4.(float32)} oraz {\bf ldc.r8.(float64)}
+\end{itemize}
+
+Zmienne są deklarowane za pomocą dyrektywy {\bf .locals}. Opcjonalne słowo {\bf init} oznacza, że
+zmienne mają być zainicjowane domyślnymi wartościami. Jeśli progarmista zdecyduje inaczej, kod będzie
+przez środowisko uruchomieniowe uważany za niebezpieczny.
+
+Zmienne są numerowane kolejnymi liczbami całkowitymi i w jednej metodzie może ich być maksymalnie
+65536, czyli $2^{16}$. Zmienne mogą być deklarowane w kilku miejscach w kodzie metody, co więcej, 
+jeśli pewna zmienna o numerze $k$ przestaje być potrzebna, można w jej miejsce zadeklarować
+nową zmienną o tym samym numerze i tym samym typie, ale o innej nazwie. 
+
+Numery zmiennych odgrywają główną rolę w kodzie ILAsmowym, bowiem przesyłanie danych ze stosu
+do zmiennej i ze zmiennej na stos odbywa się za pomocą instrukcji {\bf ldloc (int32)} oraz
+{\bf stloc (int32)}, które jako parametr przyjmują właśnie nazwę zmiennej.
+
+\begin{scriptsize}
+\begin{verbatim}
+.assembly extern mscorlib {}
+.assembly Example{} 
+.class public CExample extends [mscorlib]System.Object
+{ 
+  .method public static void MyAppStart() il managed 
+  { 
+    .entrypoint 
+    .maxstack 8
+
+    // int n;
+    .locals init ([0] int32 n)
+
+    // n = 100;
+    ldc.i4 100
+    stloc  0
+
+    // Console.WriteLine( n );
+    ldloc  0
+    call void [mscorlib]System.Console::WriteLine(int32)
+    
+    ret 
+  } 
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Instrukcje arytmetyczne}
+
+Wśród instrukcji arytmetycznych szczególną rolę odgrywają instrukcje umożliwiające manipulację
+danymi na stosie:
+\begin{description}
+\item [dup] powoduje utworzenie na stosie dodatkowej kopii już istniejącego tam obiektu
+\item [pop] powoduje usunięcie wartości z wierzchu stosu
+\end{description}
+
+"Zwykłe" instrukcje arytmetyczne wymagają odpowiedniej liczby wartości na stosie i zwracają 
+wartość na stos.
+\begin{description}
+\item [add] suma dwóch argumentów 
+\item [sub] różnica
+\item [mul] iloczyn
+\item [div] iloraz
+\item [rem] reszta z dzielenia
+\item [neg] negacja parametru z wierzchołka stosu (zmiana znaku liczby)
+\end{description}
+
+Operacje bitowe:
+\begin{description}
+\item [and] iloczyn bitowy
+\item [or]  suma bitowa 
+\item [xor] różnica symetryczna
+\item [not] negacja bitowa
+\item [shl] przesunięcie bitowe w lewo (wymaga dwóch wartości na stosie: pierwsza określa o ile bitów
+przesunąć w lewo drugą)
+\item [shr] przesunięcie bitowe w prawo
+\end{description}
+
+Operatory konwersji pobierają wartość ze stosu, konwertują do wskazanego typu i odkładają
+wynik na stos
+
+\begin{description}
+\item [conv.i1] Konwertuj do {\bf int8}
+\item [conv.u1] Konwertuj do {\bf unsigned int8}
+\item [conv.i2] Konwertuj do {\bf int16}
+\item [conv.u2] Konwertuj do {\bf unsigned int16}
+\item [conv.i4] Konwertuj do {\bf int32}
+\item [conv.u4] Konwertuj do {\bf unsigned int32}
+\item [conv.i8] Konwertuj do {\bf int64}
+\item [conv.u8] Konwertuj do {\bf unsigned int64}
+\item [conv.r4] Konwertuj do {\bf float32}
+\item [conv.r8] Konwertuj do {\bf float64}
+\end{description}
+
+\subsubsection{Operacje warunkowe, skoki}
+
+Stosowe warunki logiczne sprawdzają czy zachodzi odpowiednia relacja między kolejnymi
+wartościami ze stosu i odkłada na stos wartość 1 jeśli warunek jest spełniony lub 0 jeśli warunek
+nie jest spełniony:
+
+\begin{description}
+\item [ceq] Sprawdza czy dwie kolejne wartości na stosie są równe
+\item [cgt] Sprawdza czy pierwsza wartość na stosie jest większa od drugiej. 
+\item [clt] Sprawdza czy pierwsza wartość na stosie jest mniejsza od drugiej.
+\end{description}
+
+Instrukcje skoku mają zwykle postać {\bf (instrukcja) (numer)}, gdzie {\bf (numer)} oznacza przesunięcie
+(wyrażone w bajtach) instrukcji, do której należy wykonać skok. Na przykład {\bf br 5} oznacza bezwarunkowy
+skok do instrukcji leżącej bajtów dalej niż bieżąca instrukcja. 
+
+Można jednak w każdym miejscu, gdzie w kodzie wynikowym pojawia się przesunięcie, umieścić
+etykietę, która oprócz tego powinna znajdować się gdzieś w kodzie i wyznaczać przez to pozycję
+jakiejś instrukcji. Podczas kompilacji odwołania do etykiet są przez kompilator zamieniane na wartości
+odpowiednich przesunięć, na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+Etykieta1:
+  ...
+  ...
+  br Etykieta1
+\end{verbatim}
+\end{scriptsize}
+
+Unarne instrukcje warunkowe (wymagają jednego parametru na stosie):
+
+\begin{description}
+\item [brfalse (int32)] Skok jeśli wartość na stosie jest równa 0
+\item [brtrue (int32)] Skok jeśli wartość na stosie jest różna od 0
+\end{description}
+
+Binarne instrukcje warunkowe (wymagają dwóch parametrów na stosie):
+
+\begin{description}
+\item [beq (int32)] Skok jeśli równe
+\item [bne (int32)] Skok jeśli nierówne
+\item [bge (int32)] Skok jeśli większe lub równe
+\item [bgt (int32)] Skok jeśli większe
+\item [ble (int32)] Skok jeśli mniejsze lub równe
+\item [blt (int32)] Skok jeśli mniejsze
+\end{description}
+
+\subsubsection{Metody i parametry}
+
+Parametry wewnątrz metod mogą być odczytywane i zapisywane za pomocą instrukcji {\bf ldarg} i 
+{\bf starg}. W przykładowej aplikacji umieścimy funkcję, która oblicza kwadrat liczby przekazanej
+jako parametr.
+
+\begin{scriptsize}
+\begin{verbatim}
+.assembly extern mscorlib {}
+.assembly Example{} 
+.class public CExample extends [mscorlib]System.Object
+{ 
+  .method static int32 Kwadrat( int32 n ) il managed
+  {
+    ldarg 0 // ładuj parametr na stos
+    dup     // umieść kolejną kopię na stosie 
+    mul     // mnóż przez siebie
+    ret     // zwróć wynik 
+  }
+
+  .method public static void MyAppStart() il managed 
+  { 
+    .entrypoint 
+    .maxstack 8
+
+    // int n;
+    .locals init ([0] int32 n)
+
+    // n = Kwadrat( 5 );
+    ldc.i4 5
+    call int32 CExample::Kwadrat(int32)
+    stloc  0
+
+    // Console.WriteLine( n )
+    ldloc  0
+    call void [mscorlib]System.Console::WriteLine(int32)
+    
+    ret 
+  } 
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Obiekty, pola, metody}
+
+IL udostępnia również mechanizmy do operacji na obiektach. Dyrektywy {\bf .class}, {\bf .method} 
+i {\bf field} pozwalają na deklarowanei odpowiednich rodzajów elementów składowych klas. 
+
+Ważniejsze instrukcje do operacji na obiektach:
+\begin{description}
+\item [ldnull] Ładuje na stos referencję {\bf null}
+\item [newobj (token)] Allokuje pamięć dla nowej instancji typu referencyjnego. Wymaga na stosie odpowiedniej liczby parametrów dla konstruktora i odkłada na stos referencję do nowo utworzonego obiektu.
+\item [ldfld (token)] Zdejmuje ze stosu referencję do obiektu i umieszcza na stosie wartość wskazanego pola.
+\item [ldsfld (token)] Jak wyżej, tylko dotyczy pola statycznego.
+\item [stfld (token)] Zdejmuje ze stosu wartość pola i referencję do obiektu i umieszcza wartość w odpowiednim polu obiektu.
+\item [stsfld (token)] Jak wyżej, tylko dotyczy pola statycznego.
+\item [castclass (token)] Zdejmuje ze stosu referencję do obiektu i rzutuje do wskazanego typu.
+\item [box (token)] Zdejmuje ze stosu wartość typu prostego i opakowuje, zapisując na stos referencję do nowo utworzonego obiektu.
+\item [unbox (token)] Odpakowuje wartość obiektu z zadanej referencji. 
+\end{description}
+
+Zobaczmy przykład opakowywania. Na stos załadujemy wartość $1$, opakujemy ją do obiektu i
+wywołamy wirtualną metodę {\bf ToString} dla tak skonstruowanego obiektu. Wynik pokażemy w oknie konsoli.
+
+\begin{scriptsize}
+\begin{verbatim}
+.assembly extern mscorlib {}
+.assembly Example{} 
+.class public CExample extends [mscorlib]System.Object
+{ 
+  .method public static void MyAppStart() il managed 
+  { 
+    .entrypoint 
+    .maxstack 8
+
+    ldc.i4    1
+    box       [mscorlib]System.Int32
+    callvirt  instance string [mscorlib]System.Object::ToString()
+    call void [mscorlib]System.Console::WriteLine(string)
+    
+    ret 
+  } 
+}
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Polimorfizm}
+
+Metody niestatyczne zdefiniowane w klasie mogą być zdefiniowane jako wirtualne lub nie za
+pomocą dyrektywy {\bf virtual}. W chwili wołania metody wirtualnej ze specjalnej struktury zwanej 
+{\em tablicą metod wirtualnych} pobierana jest informacja o łańcuchu poprzeciążanych funkcji, z których
+wybierana jest odpowiednia. Oznacza to, że wiązanie nazwy metody z konkretną implementacją odbywa się
+tuż przed wykonaniem metody, a nie w czasie kompilacji.
+
+Zobaczmy następujący przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+.assembly CExample{}  
+
+.class public A
+{
+   .method public specialname void .ctor() { ret }
+   .method public void Foo()
+   {
+      ldstr "A::Foo"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+   .method public virtual void Bar()
+   {
+      ldstr "A::Bar"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+   .method public virtual void Baz()
+   {
+      ldstr "A::Baz"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+}
+
+.class public B extends A
+{
+   .method public specialname void .ctor() { ret }
+   .method public void Foo()
+   {
+      ldstr "B::Foo"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+   .method public virtual void Bar()
+   {
+      ldstr "B::Bar"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+   .method public virtual newslot void Baz()
+   {
+      ldstr "B::Baz"
+      call void [mscorlib]System.Console::WriteLine(string)
+      ret
+   }
+}
+
+.method public static void Exec()
+{
+   .entrypoint
+   newobj instance void B::.ctor() // new B()
+   castclass class A               // rzutuj na A
+
+   dup                 // 3 kopie na stosie
+   dup                 // 
+
+   callvirt instance void A::Foo()
+   callvirt instance void A::Bar()
+   callvirt instance void A::Baz()
+   ret
+}
+\end{verbatim}
+\end{scriptsize}
+
+W klasie {\bf A} zdefiniowano trzy metody, z czego dwie są metodami wirtualnymi. W klasie {\bf B}, dziedziczącej
+z {\bf A}, zdefiniowano trzy metody o takich samych sygnaturach jak metody z klasy bazowej. 
+
+\begin{itemize}
+\item metoda {\bf Foo} jest w obu klasach zdefiniowana jako niewirtualna
+\item metoda {\bf Bar} jest w obu klasach wirtualna
+\item metoda {\bf Baz} jest w obu klasach wirtualna, przy czym w klasie {\bf B} jest opatrzona dyrektywą 
+{\bf newslot} (nowa pozycja w tablicy metod wirtualnych)
+\end{itemize}
+
+Efekt działania tego programu jest zgodny z oczekiwaniami: tylko kod metody Bar będzie pochodził
+z klasy {\bf B}. Zwróćmy przy okazji uwagę, że instrukcja {\bf callvirt} w przypadku funkcji {\bf Foo} nie
+ma żadnego zastosowania, bowiem {\bf Foo} nie jest metodą wirtualną. Podobnie, gdyby wszystkie wywołania
+{\bf callvirt} zamienić na {\bf call}, to fakt, że wywoływane metody są metodami wirtualnymi przestałby
+mieć znaczenie - {\bf call} oznacza niepolimorficzne wywołanie funkcji.
+
+\begin{scriptsize}
+\begin{verbatim}
+C:\example>example.exe
+A::Foo
+B::Bar
+A::Baz
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Wyjątki}
+
+Obsługa wyjątków w ILAsm polega na użyciu dyrektyw {\bf .try} i {\bf .catch}. Na uwagę zasługuje 
+fakt, że kod w obu sekcjach musi być jawnie opuszczony za pomocą instrukcji {\bf leave}.
+
+Poniższy przykład spowoduje wyjątek, ponieważ obiekt {\bf FileStream} nie jest zainicjowany przed
+wywołaniem jego metody.
+
+\begin{scriptsize}
+\begin{verbatim}
+/*
+using System;
+using System.IO;
+
+namespace NSpace
+{ 
+  class CMain
+  {
+    public static void Main()
+    {
+      try
+      {
+        FileStream fs = null;
+        fs.Close();
+      }
+      catch( Exception ex )
+      {
+        Console.WriteLine( ex.Message );
+      }
+    }
+  } 
+}
+*/
+
+.assembly extern mscorlib {}
+.assembly Example{} 
+.class public CExample extends [mscorlib]System.Object
+{ 
+  .method public static void MyAppStart() il managed 
+  { 
+    .entrypoint 
+    .maxstack  2
+    .locals init (class [mscorlib]System.IO.FileStream V_0,
+           class [mscorlib]System.Exception V_1)  
+    .try
+    {
+      ldnull     
+      stloc.0    // V_0 = null
+      ldloc.0
+      callvirt   instance void [mscorlib]System.IO.Stream::Close()
+      leave.s    IL_0018
+    }  // end .try
+    catch [mscorlib]System.Exception 
+    {
+      stloc.1
+      ldloc.1
+      callvirt   instance string [mscorlib]System.Exception::get_Message()
+      call       void [mscorlib]System.Console::WriteLine(string)
+      leave.s    IL_0018
+    }  // end handler
+    IL_0018:  ret
+  } 
+}
+\end{verbatim}
+\end{scriptsize}
+
