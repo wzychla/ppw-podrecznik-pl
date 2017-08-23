@@ -1,4 +1,4 @@
-﻿\subsection{Moduły}
+﻿\subsection{Zestawy}
 
 Klasy w programie C\#-owym pogrupowane są w rozłącznych przestrzeniach nazw ({\em namespace'ach}). 
 Dostęp do klas umieszczonych w określonej przestrzeni nazw możliwy jest dzięki konstrukcji
@@ -27,11 +27,13 @@ using NazwaPrzestrzeniKlas
 
 dzięki czemu do funkcji z tej przestrzeni nazw można odwoływać się bez poprzedzania
 ich nazw nazwą przestrzeni nazw. Podział programu na różne przestrzenie nazw zwykle wynika
-z logicznego podziału programu na moduły. Nie wnikając w strukturę modułu, powiedzmy tylko że zawiera on
-opis klas, przy czym moduł wykonywalny (*.exe) różni się od modułu-biblioteki (*.dll) tylko tym, że 
-w jednej z klas zawiera kod startowy (tu: funkcję Main()). 
+z logicznego podziału programu na tzw {\bf zestawy} (ang {\em assembly}). 
 
-Przykład najprostszego modułu:
+Zestaw zawiera
+skompilowany kod klas, przy czym zestaw wykonywalny (*.exe) różni się od zestawu-biblioteki (*.dll) tylko tym, że 
+w jednej z klas zawiera kod startowy (tu: funkcję {\tt Main}. 
+
+Przykład najprostszego zestawu:
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -56,7 +58,7 @@ Copyright (C) Microsoft Corporation 2001. All rights reserved.
 \end{verbatim}
 \end{scriptsize}
 
-Przykład programu korzystającego z modułu:
+Przykład programu korzystającego z zestawu:
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -83,8 +85,8 @@ Copyright (C) Microsoft Corporation 2001. All rights reserved.
 \end{verbatim}
 \end{scriptsize}
 
-Od tej pory moduł główny i biblioteka mogą być kompilowane niezależnie, zaś prawidłowe wykonanie kodu
-modułu możliwe będzie tylko wtedy, kiedy biblioteka będzie dostępna dla środowiska uruchomieniowego
+Od tej pory zestaw wykonywalny i biblioteka mogą być kompilowane niezależnie, zaś prawidłowe wykonanie kodu
+zestawu głównego możliwe będzie tylko wtedy, kiedy biblioteka będzie dostępna dla środowiska uruchomieniowego
 w czasie wykonania programu, czyli na przykład znajdzie się w tym samym folderze co moduł główny.
 
 \subsection{Refleksje}
@@ -127,7 +129,7 @@ Definicja Example.CExample znajduje się w module example.exe.
 \end{verbatim}
 \end{scriptsize}
 
-Każdy moduł może być przeanalizowany pod kątem zawartych w nim typów:
+Każdy zestaw może być przeanalizowany pod kątem zawartych w nim typów:
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -188,12 +190,12 @@ Typ: Example.CExample
 \end{verbatim}
 \end{scriptsize}
 
-Za pomocą tego programu można obejrzeć listy typów w modułach .NET, na przykład System.Windows.Forms.dll
+Za pomocą tego programu można obejrzeć listy typów w zestawach .NET, na przykład System.Windows.Forms.dll
 czy MSCORLIB.DLL.
 
 Mechanizm refleksji może być wykorzystany do dynamicznego tworzenia instancji obiektów, 
 gdy znany jest typ obiektu. Można w taki sposób zrealizować dynamiczne łączenie
-modułów - łączenie nie w czasie kompilacji, tylko w czasie wykonania.
+kodu - łączenie nie w czasie kompilacji, tylko w czasie wykonania.
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -273,7 +275,7 @@ Dzięki mechanizmowi refleksji, programista w trakcie działania programu może 
 {\em poziomie metajęzyka}, czyli na poziomie informacji o typach: o ich składowych, o zależnościach między typami.
 
 Mechanizm atrybutów to kolejny mechanizm z poziomu metajęzyka. Atrybuty pozwalają rozszerzyć 
-definicje typów o dodatkowe informacje, możliwe do wydobycia dzięki refleksjom. Wyobraźmy sobie pewien 
+definicje typów o dodatkowe informacje, możliwe do wydobycia dzięki refleksji. Wyobraźmy sobie pewien 
 abstrakcyjny scenariusz, w którym każdy typ pojawiający się w programie byłby określony 
 jako niebieski, czarny lub zielony. 
 Uwaga - nie {\em instancja typu} (czyli konkretna zmienna), ale właśnie typ sam
@@ -387,7 +389,7 @@ taki jest w jakiś sposób niebezpieczny, tak naprawdę chodzi tu tylko o obejś
 systemu typów C\#, który w żaden sposób nie potrafiłby przepuścić kodu upstrzonego wskaźnikami. Oprócz kodu
 {\em niebezpiecznego} możliwy jest również kod {\em niezarządzany}. Z kodem niezarządzanym mamy do czynienia
 przy uruchamianiu z kodu C\#-owego modułów COM lub COM+, napisanych w Visual Basicu lub C++. Kod
-niezarządzany sam zajmuje się obsługą pamięci i nie korzysta z bibliotek platformy \NET{}.
+niezarządzany sam zajmuje się obsługą pamięci i nie korzysta z bibliotek platformy .NET.
 
 Kod niebezpieczny musi być kompilowany z przełącznikiem {\em /unsafe}.
 
@@ -688,11 +690,11 @@ namespace NExample
 \end{verbatim}
 \end{scriptsize}
 
-\subsubsection{Dekompilacja do języka IL}
+\subsubsection{Dekompilacja do języka CIL}
 
 .NET Framework SDK zawiera m.in. dekompilator kodu, dzięki któremu można obejrzeć
-kod IL-owy dowolnego modułu .NETowego\footnote{Dekompilator IL jest częścią .NET Framework SDK, 
-kompilator IL jest częścią samego .NET Frameworka.}.
+kod CIL-owy dowolnego modułu .NETowego\footnote{Dekompilator CIL jest częścią .NET Framework SDK, 
+kompilator CIL jest częścią samego .NET Frameworka.}.
 Dekompilator uruchamia się poleceniem {\em ildasm.exe}.
 
 Dekompilator pozwala obejrzeć kod dowolnego obiektu w dowolnej klasie projektu. Oznacza to, że może być
@@ -765,12 +767,12 @@ optymalizacji. To reguła w świecie .NET - kompilator JIT podczas kompilacji ko
 kodu natywnego i tak dokonuje swoich optymalizacji, dlatego kompilatory języków nie muszą tego
 robić na poziomie kompilacji kodu języka do kodu pośredniego.
 
-Język IL będzie dokładniej omówiony w rozdziale \ref{langIL}
+Język CIL będzie dokładniej omówiony w rozdziale \ref{langIL}
 
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.75\textwidth]{./pic/w05}
-\caption{Dekompilacja kodu IL do C\# w Anakrino}
+\caption{Dekompilacja kodu CIL do C\# w Anakrino}
 \end{center}
 \end{figure}
 
@@ -778,12 +780,12 @@ Język IL będzie dokładniej omówiony w rozdziale \ref{langIL}
 
 Czy można wyobrazić sobie narzędzie, które pozwalałoby odtwarzać kod C\# z binarium zawierającego kod pośredni?
 
-Okazuje się, że tak. Najpopularniejszym w tej chwili dekompilatorem kodu C\# jest
-{\bf Anakrino}. Zdekompilowany kod zawiera poprawne nazwy klas, metod i parametrów, niepoprawnie natomiast
+Okazuje się, że tak. Najpopularniejszym w tej chwili dekompilatorem kodu C\# jest aktualnie narzędzie
+{\bf IlSpy}. Zdekompilowany kod zawiera poprawne nazwy klas, metod i parametrów, niepoprawnie natomiast
 odtwarzane są na przykład nazwy zmiennych lokalnych metod. Dzieje się tak, ponieważ nazwy zmiennych lokalnych
 nie są przechowywane w kodzie pośrednim.
 
-Zdekompilowana przez Anakrino kod metody {\em Main}:
+Zdekompilowany kod metody {\em Main}:
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -827,8 +829,8 @@ dlatego dekompilator odtwarza kod każdej pętli jako {\em while}.
 \begin{tabular}{lll} 
 {\em Język źródłowy} & {\em Język docelowy} & {\em Dekompilator} \\ \hline \hline
 Dowolny język & IL & Ildasm \\ \hline
-C\# & C\# & Anakrino \\
-Dowolny inny język & C\# & Anakrino (czasami) \\ \hline
+C\# & C\# & IlSpy \\
+Dowolny inny język & C\# & IlSpy (czasami) \\ \hline
 Dowolny język & Inny niż IL lub C\# & ? \\
 \end{tabular}
 \caption{Schemat dekompilacji między różnymi językami platformy .NET}
@@ -837,7 +839,7 @@ Dowolny język & Inny niż IL lub C\# & ? \\
 
 \subsubsection{Zabezpieczanie się przed dekompilacją}
 
-Możliwość dekompilacji dowolnego kodu do postaci MSILa, a w niektórych wypadkach nawet do postaci kodu C\# 
+Możliwość dekompilacji dowolnego kodu do postaci CILa, a w niektórych wypadkach nawet do postaci kodu C\# 
 oznacza, że każdy może analizować kod napisany przez innych programistów. W pierwszej chwili może się więc
 wydawać że jest to poważna luka, dzięki której osoby niepowołane mogłyby wejść w posiadanie jakichś
 poufnych informacji.

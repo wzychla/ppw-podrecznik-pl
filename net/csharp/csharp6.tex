@@ -1,14 +1,14 @@
-﻿\subsection{Delegaci i zdarzenia}
+﻿\subsection{Delegaty i zdarzenia}
 \label{delegaciZdarzenia}
 
-\subsubsection{Delegaci}
+\subsubsection{Delegaty}
 
 {\em Delegat} jest typem referencyjnym, który w elegancki sposób przechowuje wskaźnik na funkcję. 
 CTS za pomocą delegatów pozwala przekazywać funkcje jako parametry do innych funkcji, kontrolując 
 jednocześnie zgodność typów - kompilator nie pozwoli na utworzenie delegata z funkcji o nieodpowiednim
 prototypie.
 
-Sama deklaracja delegata przypomina deklarację wskaźnika na funkcję w języku C:
+Sama deklaracja delegata przypomina deklarację typu wskaźnika na funkcję w języku C:
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -22,7 +22,7 @@ delegate int pfPInt(); // definicja delegata - wskaźnika na funkcję w C#
 \end{verbatim}
 \end{scriptsize}
 
-Podkreślmy - delegaci są obiektami, konstruuje się ich więc w standardowy sposób za pomocą {\em new}.
+Podkreślmy - delegaty są obiektami, konstruuje się je więc w standardowy sposób za pomocą {\em new}.
 
 \begin{scriptsize}
 \begin{verbatim}
@@ -66,8 +66,10 @@ namespace Example
 \end{verbatim}
 \end{scriptsize}
 
-Dowolna ilość delegatów może być złożona do jednego delegata za pomocą operatora +, którego wykonanie powoduje
-wykonanie całej sekwencji. Jeśli delegaci zwracają wyniki, to wynik złożonego delegata jest wynikiem
+Dowolna liczba delegatów może być złożona do jednego delegata za pomocą operatora +. 
+Wykonanie takiego złożonego delegata powoduje wykonanie powoduje wykonanie całej sekwencji. 
+
+Jeśli delegaty zwracają wyniki, to wynik złożonego delegata jest wynikiem
 ostatnio wykonanego delegata.
 
 \begin{scriptsize}
@@ -113,6 +115,9 @@ namespace Example
 }
 \end{verbatim}
 \end{scriptsize}
+
+W dalszej części rozdziału zostanie pokazane w jaki sposób można obejść to ograniczenie i otrzymywać
+wyniki ze wszystkich kolejno wykonujących się delegatów jak również - jak wykonywać delegaty w sposób asynchroniczny.
 
 \subsubsection{Zdarzenia}
 

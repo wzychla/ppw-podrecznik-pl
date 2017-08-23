@@ -1,9 +1,9 @@
 ﻿\subsection{ILAsm}
 \label{langIL}
 
-MSIL jest językiem pośrednim, do którego kompilowane są wszystkie języki platformy .NET. Wśród
+CIL jest językiem pośrednim, do którego kompilowane są wszystkie języki platformy .NET. Wśród
 nich szczególną pozycję ma ILAsm ({\em Intermediate Language Assembler}), czyli język
-niskiego poziomu bezpośrednio tłumaczący się do kodu pośredniego MSIL.
+niskiego poziomu bezpośrednio tłumaczący się do kodu pośredniego CIL.
 
 Oczywiście znajomość języka ILAsm nie jest niezbędna aby pisać programy dla środowiska .NET. 
 Czasami jednak warto zdekompilować program (rozdział \ref{csDekompilacja}) C\#owy i zobaczyć
@@ -23,7 +23,7 @@ na stercie). Programista może przekazywać wartości obiektów między stosem a
 Do przekazania wartości na stos służą instrukcje w postaci {\bf ld...}, zaś do pobrania
 wartości ze stosu i umieszczenia ich w zmiennych lokalnych instrukcje postaci {\bf st...}.
 
-Wykonanie funkcji w IlAsm składa się z trzech kroków:
+Wykonanie funkcji w ILAsm składa się z trzech kroków:
 \begin{enumerate}
 \item Położenie na stosie parametrów wejściowych funkcji
 \item Wywołanie funkcji
@@ -72,7 +72,7 @@ Dyrektywa {\bf .assembly} definiuje nowy moduł do kompilacji, w tym przypadku c
 program, który właśnie piszemy.
 
 Dyrektywa {\bf .class} definiuje nowy
-typ, jednak jest ona opcjonalna - IlAsm może z powodzeniem tworzyć kod nieobiektowy. W naszym
+typ, jednak jest ona opcjonalna - ILAsm może z powodzeniem tworzyć kod nieobiektowy. W naszym
 przykładzie nowym typem jest typ referencyjny (klasa), dziedziczący z klasy {\bf System.Object}. 
 
 W przeciwieństwie do C\# czy VB.NET, część definicji typu w ILAsm może być umieszczona w pewnym

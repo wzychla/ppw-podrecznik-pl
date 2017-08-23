@@ -1,0 +1,214 @@
+﻿\section{Projektowanie zorientowane obiektowo}
+
+Język C\# jest kolejnym językiem obiektowym, jaki w ciągu ostatnich lat został udostępniony programistom.
+Można więc zapytać: czy kod obiektowy tworzy się szybciej niż kod nieobiektowy albo czy 
+programy obiektowe działają szybciej niż nieobiektowe? Okazuje się, że niekoniecznie. Dlaczego więc
+języki obiektowe są tak ważne? 
+
+Programowanie obiektowe jest naturalnym rozwinięciem programowania strukturalnego, możliwego chociażby 
+w języku C. Program strukturalny składa się z szeregu {\em struktur danych} oraz {\em funkcji} operujących na 
+tych strukturach. Struktury danych reprezentują {\em wiedzę} (dane), funkcje reprezentują {\em algorytmy}.
+
+\begin{scriptsize}
+\begin{verbatim}
+struct Foo
+{
+  int Bar;
+} foo;
+
+int DoSomething( struct Foo f ) 
+{
+  return f.Bar + 1;
+}
+
+int main()
+{
+  printf( "%d", DoSomething( foo ) );
+}
+\end{verbatim}
+\end{scriptsize}
+
+Na język obiektowy można patrzeć jak na pewną {\em konwencję programowania strukturalnego}, prowadzącą do specyficznego 
+uporządkowania kodu. Ta konwencja wypływa naprzeciw pewnej obserwacji - dość często jest tak, że algorytm można
+przypisać jednej określonej strukturze danych na której operuje. 
+
+Takie jednoznaczne przypisanie prowadzi do powstania pojęcia {\em klasy}, która łączy ze sobą dane i algorytmy w taki
+szczególny sposób, w którym funkcja operująca na danych {\bf nie musi} otrzymywać tych danych w postaci jawnego argumentu
+({\tt struct Foo f} w powyższym przykładzie), ponieważ ma do danych "swojego" (tego, który w wersji nieobiektowej
+musiałby być przekazany jako jawny argument) obiektu zawsze dostęp za pomocą
+zarezerwowanego słowa kluczowego {\tt this}:
+
+\begin{scriptsize}
+\begin{verbatim}
+class Foo
+{
+  int Bar;
+
+  int DoSomething() 
+  {
+    return this.Bar + 1;
+  }
+};
+
+int main()
+{
+  Foo foo; 
+  printf( "%d", DoSomething( foo ) );
+}
+\end{verbatim}
+\end{scriptsize}
+
+Skądinąd, jest to dość interesujące od strony technicznej, bowiem oznacza że metody klasy, które przynależą
+do wystąpień obiektów (metody niestatyczne), mają w językach obiektowych ten jeszcze jeden jeden, niejawny argument 
+i że rzeczywista liczba argumentów metody typu
+
+\begin{scriptsize}
+\begin{verbatim}
+class Foo
+{
+  void DoSomething( int a, int b ) 
+  {
+  }
+};
+\end{verbatim}
+\end{scriptsize}
+
+to nie dwa ({\tt a} i {\tt b}) ale trzy ({\tt this}, {\tt a} i {\tt b}), co znaczy że tak naprawdę to jest to właśnie
+
+\begin{scriptsize}
+\begin{verbatim}
+struct  Foo
+{
+}
+
+void DoSomething( struct Foo this, int a, int b ) 
+{
+}
+\end{verbatim}
+\end{scriptsize}
+
+Ta konwencja ma wiele ważnych pozytywnych konsekwencji, wśród których najważniejszą wydaje się zmiana sposobu
+myślenia - o klasie zaczyna się myśleć jako o abstrakcie pewnego {\bf pojęcia}, często odpowiadającego
+jakiemuś pojęciu ze świata rzeczywistego. Można o tych pojęciach mówić bardziej formalnie, wprowadzać elementy
+{\em analizy obiektowej} i budować całe {\em modele pojęciowe}, które z kolei można mniej lub bardziej formalnie 
+analizować itd.
+
+Istnieją jednak również oczywiście takie konsekwencje przyjęcia konwencji obiektowej, które 
+(przynajmniej przez pewien czas) mogą wydawać się niewygodne. 
+
+Przede wszystkim - w przypadku funkcji/algorytmów operujących na danych więcej niż jednej struktury,
+wybór tej właśnie jednej do której algorytm zostanie przypisany, nie wydaje się możliwy do formalizacji bez odniesienia
+się do konkretnego przypadku. Mówiąc inaczej, mając
+
+\begin{scriptsize}
+\begin{verbatim}
+struct Foo
+{
+  int foo;
+};
+
+struct Bar
+{
+  int bar;
+}
+
+int DoSomething( struct Foo f, struct Bar b ) 
+{
+  return f.foo + b.bar; 
+}
+\end{verbatim}
+\end{scriptsize}
+
+niekoniecznie łatwo wyczuć czy funkcja {\tt DoSomething} bardziej należy do {\tt Foo} czy do {\tt Bar} i do której struktury
+przywiązać tę funkcję dokonując konwersji kodu strukturalnego do wymogów konwencji obiektowej.
+
+Nie wgłębiając się bardzo w ten problem, powiedzmy tylko że nie ma takich reguł projektowania obiektowego, które rozstrzygałyby
+tego rodzaju wątpliwości obiektywnie i deterministycznie. W takich przypadkach jak ten, przypisanie funkcji do jednej tych 
+z kilku klas, które są argumentami funkcji, bywa zależne od "stylu" programisty i dla kodu
+
+\begin{scriptsize}
+\begin{verbatim}
+struct Ser
+{
+}
+
+struct Mysz
+{
+}
+
+void MyszZjadaSer( Mysz mysz, Ser ser )
+{
+}
+\end{verbatim}
+\end{scriptsize}
+
+następujące dwa podejścia są równoważne
+(jeśli nie ma żadnych innych dodatkowych przesłanek za którymkolwiek z nich):
+
+\begin{scriptsize}
+\begin{verbatim}
+class Ser
+{
+}
+
+class Mysz
+{
+   void Zjada( Ser ser );  
+}
+\end{verbatim}
+\end{scriptsize}
+
+oraz
+
+\begin{scriptsize}
+\begin{verbatim}
+class Mysz
+{
+  
+}
+
+class Ser
+{
+  void JestZjadanyPrzez( Mysz mysz );
+}
+\end{verbatim}
+\end{scriptsize}
+
+Kolejna oczywiste ograniczenie paradygmatu obiektowego pojawia się w językach {\em ściśle} obiektowych, 
+takich w których {\bf każda funkcja musi} być przypisana do {\bf jakiejś} klasy. Tak jest na przykład w Javie czy C\#,
+z kolei C++ nie nakłada takich ograniczeń. U niedoświadczonych programistów to wymaganie rodzi pewne wątpliwości,
+no bo jakże to taką prostą metodę przypisać do jakiejś struktury:
+
+\begin{scriptsize}
+\begin{verbatim}
+int Sum( int x, int y )
+{
+  return x + y;
+}
+\end{verbatim}
+\end{scriptsize}
+
+?
+
+Choć wydaje się, że kandydatem na bycie "właścicielem" takiego algorytmu ma szansę być struktura (klasa) {\tt int},
+w wielu językach zwyczajnie nie ma możliwości rozszerzania klas biblioteki standardowej o własne, niestandardowe metody.
+W takich przypadkach zwykle stosuje się regułę {\bf Pure Fabrication}, jedną z formalnych reguł projektowania obiektowego 
+GRASP, która mówi tyle że w przypadku algorytmów które nie przynależą w naturalny sposób do żadnej struktury należy
+po prostu utworzyć dla nich osobną klasę w taki sposób, żeby nie naruszyć dwóch innych zasad GRASP, Low Coupling i 
+High Cohesion. 
+
+W tym konkretnym przypadku mogłoby to być na przykład:
+
+\begin{scriptsize}
+\begin{verbatim}
+class Math
+{
+  static int Sum( int x, int y )
+  {
+    return x + y;
+  }
+}
+\end{verbatim}
+\end{scriptsize}
+
+gdzie {\tt static} dodatkowo podkreśla brak zależności od instancji (wystąpienia) danej klasy.

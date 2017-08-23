@@ -1,27 +1,31 @@
 ﻿\section{Podstawowe elementy języka C\#}
 
-Język C\# jest językiem obiektowym. Z dotychczas znanych języków najbardziej przypomina Javę, jednak
-kilka istotnych ułomności Javy zostało w C\# poprawionych, czyniąc C\# jednym z najelegantszych 
-dotychczas zaprojektowanych języków programowania\footnote{Ze zdziwieniem słucham opinii niektórych 
-programistów, że podobieństwo C\# do Javy oznacza jego ułomność. Takie opinie powtarzają
-najczęściej ci, którzy C\# nie znają. Z tych samych powodów nie warto zapewne zajmować się Javą, bo jest
-bardzo podobna do C++, nie warto zajmować się C++ bo jest bardzo podobny do C itd. Wedle
-tej logiki zapewne w ogóle nie warto zajmować się programowaniem, bo wszystko jest do czegoś podobne.}.
+Język C\# jest językiem obiektowym. Z wcześniejszych języków najbardziej przypomina Javę, jednak
+kilka istotnych ułomności Javy
+\footnote{Najbardziej jaskrawy przykład to brak w Javie typu funkcyjnego, umożliwiającego przekazywanie
+funkcji do innych funkcji jako argumentów oraz zwracanie funkcji z funkcji jako wartości. Brak takiego mechanizmu
+w zasadzie przez wiele lat wykluczał elementy programowania funkcyjnego. W Java 8 wprowadzono mechanizm, który
+podczas kompilacji rozwija tzw. {\em lambda wyrażenia} (czyli skrócone postaci funkcji anonimowych) do 
+klas z jedną metodą, implementujących pewien ustalony interfejs. Choć w ten sposób syntaktycznie możliwe jest przekanie
+funkcji do funkcji jako argument, w rzeczywistości do funkcji nie trafia bezpośrednio funkcja, ale właśnie
+obiekt automatycznie utworzonej klasy implementującej ten konkretny interfejs.} 
+zostało w C\# skorygowanych, czyniąc C\# jeszcze przyjemniejszym w zastosowaniu.
+
 Autorzy projektu języka wyraźnie i często podkreślają, że wybranie takiej a nie innej składni 
 podstawowych konstrukcji języka oznacza nie tylko dużą łatwość pracy dla programistów znających 
 wcześniej Javę czy C++, ale oznacza również możliwość łatwej konwersji już istniejącego 
-kodu\footnote{Microsoft rozpowszechnia darmowy konwerter kodu Javy do C\#, który zadziwiająco dobrze
-radzi sobie z nawet skomplikowanymi programami. Program można bezpłatnie pobrać ze stron MSDN.}.
+kodu.
 
-Jak już wcześniej powiedziano, kompilator C\# jest częścią środowiska uruchomieniowego \NETFramework{}. 
-Do tworzenia i uruchamiania programów nadaje się każdy system Windows, począwszy od Windows 98. Również
-niektóre darmowe środowiska developerskie można uruchomić na Windows 98 i wyższych. Jedynie Visual Studio .NET
-wymaga co najmniej Windows 2000, jednak rozwijane w nim programy uruchomią się na Windows 98 z zainstalowanym
-środowiskiem uruchomieniowym \NET{}.
+Jak już wcześniej powiedziano, kompilator C\# jest częścią środowiska uruchomieniowego .NET Framework. 
+Początkowo do tworzenia i uruchamiania programów nadawał się każdy system Windows, od Windows 98. Również
+niektóre darmowe środowiska developerskie można było uruchomić na Windows 98 i wyższych. 
+
+Aktualnie, dla najnowszych wersji środowiska .NET Framework wymagany jest co najmniej Windows 7 i niewykluczone
+że po zakończeniu wsparcia dla Windows 7 i Windows 8, w przyszłości wspierane będą wyższe wersje systemu.
 
 Kompilator C\# tworzy kod wynikowy w języku pośrednim, zwanym IL i umieszcza go
 w {em module binarnym}. Moduł może być aplikacją konsolową lub okienkową (pliki {\em *.exe}) lub
-biblioteką klas (pliki {\em *.dll}). NETFramework{} traktuje każdy moduł w sposób jednakowy - podczas
+biblioteką klas (pliki {\em *.dll}). .NET Framework traktuje każdy moduł w sposób jednakowy - podczas
 uruchamiania kodu zawartego w module, uruchamiany jest kompilator JIT ({\em Just-In-Time}), który 
 tworzy kod natywny systemu operacyjnego, po czym uruchamia ten kod jak zwykłą aplikację w systemie
 operacyjnym. Dzięki temu prędkość działania aplikacji C\#-owej w systemie jest porównywalna
@@ -100,7 +104,7 @@ Copyright (C) Microsoft Corporation 2001. All rights reserved.
 \end{scriptsize}
 
 Programista ma do dyspozycji kilkanaście typów prostych wspólnych dla wszystkich aplikacji 
-platformy \NET. Deklarując zmienne można używać pełnej nazwy typu lub skrótu jego nazwy
+platformy .NET. Deklarując zmienne można używać pełnej nazwy typu lub skrótu jego nazwy
 
 \begin{center}
 $$\begin{array}{lll}
@@ -126,4 +130,4 @@ $$\begin{array}{lll}
 
 Oprócz typów prostych biblioteka standardowa zawiera setki typów złożonych. Poznanie 
 tych bardziej użytecznych jest jednym z zadań jakie czeka programistę chcącego nauczyć się
-biegle programować aplikacje na platformie \NET{}.
+biegle programować aplikacje na platformie .NET.

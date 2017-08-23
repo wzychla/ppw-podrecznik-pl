@@ -90,7 +90,7 @@ W pierwszej wersji systemu do dyspozycji programistów oddano około 450 funkcji
 ich liczba znacząco wzrosła (mówi się o tysiącach funkcji), głównie dlatego, że znacząco wzrosła liczba
 możliwości jakimi nowe odmiany systemu dysponują. Każda kolejna warstwa, 
 zbudowana nad Win32API, musi z konieczności
-być w jakiś sposób ograniczona. MFC, VCL, QT, GTK czy środowisko uruchomieniowe \NETFramework{} 
+być w jakiś sposób ograniczona. MFC, VCL, QT, GTK czy środowisko uruchomieniowe .NET Framework{} 
 nie są tu wyjątkami: zdarzają się sytuacje, kiedy zachodzi konieczność sięgnięcia "głębiej" niż pozwalają na to 
 wymienione interfejsy, aż do poziomu Win32API. Zrozumienie zasad Win32API pozwala więc przezwyciężać
 ograniczenia interfejsów wyższego poziomu\footnote{Tak będziemy mówić o interfejsach zbudowanych na Win32API}.
@@ -131,26 +131,26 @@ przygotował swoją wersję Javy, którą wyposażył w bibliotekę WFC ({\em Wi
 do zaniechania przez Microsoft rozwijania {\em J++} i podjęcia pracy nad nowym językiem, pozbawionym wad Javy,
 który osadzony byłby na nowej platformie, pozbawionej wad środowiska uruchomieniowego Javy. Prace te
 zaowocowały pojawieniem się w okoliach roku 2000 pierwszych testowych wersji środowiska uruchomieniowego, 
-nazwanego \NETFramework{}, dla którego zaprojektowano nowy język nazwany C\#. Dla wielu programistów 
+nazwanego .NET Framework, dla którego zaprojektowano nowy język nazwany C\#. Dla wielu programistów 
 używających Javy jedną z kropel w kielichu goryczy jest niezgodność semantyczna zachowania się 
 maszyn wirtualnych pochodzących z różnych źródeł\footnote{Zdarza się również, że maszyny wirtualne
 tego samego producenta zachowują się inaczej na różnych systemach operacyjnych}.
 
-\NETFramework{} opiera się na idei odwrotnej niż Java. Ta idea to {\em Jedna platforma - wiele języków}.
+.NET Framework opiera się na idei odwrotnej niż Java. Ta idea to {\em Jedna platforma - wiele języków}.
 Specyfikacja języka pośredniego, nazwanego {\em IL} ({\em Intermediate Language}) 
 jest otwarta dla wszystkich twórców kompilatorów. Co otrzymują w zamian? Wspólny system typów, pozwalający
 na komunikację programów pochodzących z różnych języków, rozbudowaną bibliotekę funkcji, wspólny mechanizm
-obsługi wyjątków oraz odśmiecacz. Ze swojej strony Microsoft przygotował 5 języków programowania platformy \NET.
+obsługi wyjątków oraz odśmiecacz. Ze swojej strony Microsoft przygotował 5 języków programowania platformy .NET.
 Są to:
 \begin{itemize}
 	\item C\#, w pełni obiektowy język programowania o składni C-podobnej
-	\item J++, Java dla platformy \NET
-	\item C++, który w nowej wersji potrafi korzystać z dobrodziejstw platformy \NET
+	\item J++, Java dla platformy .NET
+	\item C++, który w nowej wersji potrafi korzystać z dobrodziejstw platformy .NET
 	\item VB.NET, nowa wersja Visual Basica o znacznie większych możliwościach niż poprzednia wersja
-	\item IL Assembler, niskopoziomowy język programowania w kodzie pośrednim platformy \NET
+	\item IL Assembler, niskopoziomowy język programowania w kodzie pośrednim platformy .NET
 \end{itemize}
 
-Poza Microsoftem pojawiają się kompilatory innych języków dla platformy \NET. W tej chwili dostępne są
+Poza Microsoftem pojawiają się kompilatory innych języków dla platformy .NET. W tej chwili dostępne są
 m.in.:
 \begin{itemize}
 	\item Ada
@@ -161,19 +161,19 @@ m.in.:
 	\item SML.NET
 \end{itemize}
 
-Trwają prace nad \NET ową wersją Prologa, Delphi oraz wielu innych języków. 
+Trwają prace nad NET ową wersją Prologa, Delphi oraz wielu innych języków. 
 
 Kompilatory dla trzech języków (C\#, VB.NET, IL Assembler) wchodzą w skład środowiska 
-uruchomieniowego \NETFramework, czyli są {\bf darmowe}. Również bez wnoszenia opłat można pobrać ze stron 
+uruchomieniowego .NET Framework, czyli są {\bf darmowe}. Również bez wnoszenia opłat można pobrać ze stron 
 Microsoftu pakiet dla J++. 
-Sam \NETFramework{} można pobrać również bezpłatnie ze strony
+Sam .NET Framework można pobrać również bezpłatnie ze strony
 {\em http://msdn.microsoft.com/netframework/downloads/howtoget.asp}. Pakiet instalacyjny zajmuje około
 20MB. Programiści mogą pobrać {\em .NET Framework SDK}, który oprócz środowiska uruchomieniowego
 zawiera setki przykładów i tysiące stron dokumentacji technicznej. {\em .NET Framework SDK} to około 120MB.
-Samo środowisko uruchomieniowe można zainstalować na systemach Windows począwszy od Windows 98. \NETFramework{}
+Samo środowisko uruchomieniowe można zainstalować na systemach Windows począwszy od Windows 98. .NET Framework
 SDK, podobnie jak Visual Studio .NET wymagają już co najmniej Windows 2000, jednak rozwijane 
 w Windows 2000 programy dadzą się oczywiście uruchomić w Windows 98 z zainstalowanym 
-środowiskiem uruchomieniowym \NET{} (pod warunkiem
+środowiskiem uruchomieniowym .NET (pod warunkiem
 nie wykorzystywania klas specyficznych dla Windows 2000, np. {\em FileSystemWatcher}).
 
 Do dyspozycji programistów oddano oczywiście nową wersję środowiska developerskiego {\em Visual Studio .NET}
@@ -188,11 +188,11 @@ rozwijane poza Microsoftem. Najlepiej zapowiada się
 \end{center}
 \end{figure}
 
-Specyfikacja platformy \NET{} jest publiczna, ogłoszona poprzez ECMA-International ({\em European Computer
+Specyfikacja platformy .NET jest publiczna, ogłoszona poprzez ECMA-International ({\em European Computer
 Manufacturer Association International, http://www.ecma-international.org}), nic więc dziwnego, że 
 powstają wersje pod inne niż Windows systemy operacyjne. Najbardziej zaawansowany jest w tej chwili
 projekt Mono ({\em http://www.go-mono.com}), dostępny na kilka systemów operacyjnych (w tym Linux i Windows).
 
-Platforma \NET{} jest dobrze udokumentowana, powstają coraz to nowe strony, gdzie developerzy
+Platforma .NET jest dobrze udokumentowana, powstają coraz to nowe strony, gdzie developerzy
 dzielą się przykładowymi kodami i wskazówkami. Warto zaglądać na {\em http://msdn.microsoft.com},
 {\em http://www.c-sharpcorner.com}, {\em http://www.gotdotnet.com} czy {\em http://www.codeproject.com}.
