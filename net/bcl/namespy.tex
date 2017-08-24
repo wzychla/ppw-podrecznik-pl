@@ -1,22 +1,18 @@
-﻿\section{Przegląd bibliotek platformy .NET}
+﻿\section{Biblioteka standardowa platformy .NET}
 
-Biblioteki systemowe platformy .NET zawierają, 
-wiele ważnych funkcji zgromadzonych w różnych przestrzeniach nazw. Za ich pomocą programista
-może oprogramować system plików, mechanizmy tworzenia wątków i procesów, komunikację z siecią i bazami danych,
-mechanizmy kryptograficzne, obsługę XML itd. 
+Biblioteka standardowa platformy .NET obejmuje 
+wiele ważnych podsystemów. 
+Za ich pomocą programista może oprogramować system plików, mechanizmy tworzenia wątków i procesów, komunikację z siecią 
+i bazami danych, mechanizmy kryptograficzne, obsługę XML itd. 
 
-Programista powinien odróżniać funkcje udostępniane
-przez biblioteki platformy .NET od bezpośrednich mechanizmów języka C\#. 
+Co ważne, funkcje 
+biblioteki standardowej .NET są dostępne w {\bf każdym} języku programowania kompilowanym na platformie .NET. 
+Oznacza to na przykład, że z funkcji do obsługi plików z {\tt System.IO} korzysta się
+tak samo w C\#, VB.NET, CIL i każdym innym języku platformy .NET. 
 
-Jest to ważne dla programistów
-korzystających z platformy .NET, bowiem funkcje 
-z bibliotek .NET są dostępne w {\bf każdym} języku programowania, kompilowanym na platformie .NET. 
-Oznacza to na przykład, że z funkcji do obsługi plików zgromadzonych w {\em System.IO} korzysta się
-tak samo w C\#, VB.NET, SML.NET, IL i każdym innym języku platformy .NET. 
-
-Jest to jednak równie ważne dla programistów przygotowujących kompilatory własnych języków na platformie
-.NET, bowiem nie muszą oni przygotowywać własnych bibliotek typowych funkcji, a zamiast tego 
-mogą w swoim języku udostępnić mechanizmy wołania gotowych funkcji z bibliotek .NET.
+Jest to jednak równie ważne autorów kompilatorów nowych języków na platformie
+.NET, bowiem nie muszą oni przygotowywać własnych implementacji typowych podsystemów, a zamiast tego 
+mogą w swoim języku udostępnić mechanizmy wołania gotowych funkcji z biblioteki standardowej .NET.
 
 \input{net/bcl/namespy1}
 \input{net/bcl/namespy2}

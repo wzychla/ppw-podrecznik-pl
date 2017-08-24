@@ -1,2 +1,442 @@
 ﻿\subsection{Typy generyczne}
 
+Rozważmy przykład klasy wektora dwuwymiarowego o składowych całkowitoliczbowych:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector
+{
+    public Vector()
+    {
+    }
+
+    public Vector( int x, int y )
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+...
+Vector v1 = new Vector(1, 0);
+Vector v2 = new Vector(2, 1);
+\end{verbatim}
+\end{scriptsize}
+
+Taką konstrukcję można powtórzyć dla co kilku innych typów ({\tt double}, {\tt string}) otrzymując wektory liczb
+zmiennoprzecinkowych czy wektory słów. Niestety, powtórzenie oznacza, że pojawiają się kolejne typy, niezależne od poprzednich,
+nie bardzo też jest jak zastosować tu dziedziczenie w celu osiągnięcia reużywalności kodu - wszak składowe wektora miałyby
+różne typy w różnych wariantach tej klasy.
+
+Pierwszym, oczywistym pomysłem na uogólnienie tego typu konstrukcji, jest użycie najbardziej ogólnego typu do
+reprezentowania składowych, w tym przypadku typu {\tt object}:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector
+{
+    public Vector()
+    {
+    }
+
+    public Vector(object x, object y)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public object X { get; set; }
+    public object Y { get; set; }
+}
+...
+Vector v1 = new Vector(1, 0);
+Vector v2 = new Vector(2.0, 1.1);
+Vector v3 = new Vector("foo", "bar");
+\end{verbatim}
+\end{scriptsize}
+
+Niestety, ceną jaką przychodzi zapłacić za takie otwarcie jest utrata {\bf statycznej} kontroli typów. W szczególności
+kompilator nie zaprotestuje w żaden sposób przeciwko
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector v = new Vector(1, "foo");
+\end{verbatim}
+\end{scriptsize}
+
+co być może miewa sens, ale w typowym przypadku wygląda na dość poważny błąd, zwykle możliwy do wykrycia dopiero
+w trakcie działania aplikacji a nie jej kompilacji. 
+
+Cóż, pierwotna wersja, w której typy składowych pojawiały się w definicji klasy jawnie, nie miała takiej wady -
+tam istniała statyczna kontrola typów podczas kompilacji.
+
+Programowanie generyczne przy pomocy {\bf typów generycznych} pozwala w elegancki sposób {\bf uogólnić} definicję
+klasy, pozostawiając w niej definicje niektórych składowych w postaci {\em otwartej}, której {\em ukonkretnienie}
+odbywa się dopiero w miejscu użycia. Takie podejście rozwiązuje zaobserwowany wcześniej problem utraty kontroli
+nad statycznym typowaniem.
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector( T x, T y )
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+}
+
+...
+Vector<int>    v1 = new Vector<int>(1, 0);
+Vector<double> v2 = new Vector<double>(2.0, 1.1);
+Vector<string> v3 = new Vector<string>("foo", "bar");
+
+\end{verbatim}
+\end{scriptsize}
+
+Tu próba obejścia statycznej kontroli typów nie udaje się:
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<int> v = new Vector<int>(1, "foo");
+...
+Error	CS1503	Argument 2: cannot convert from 'string' to 'int'
+\end{verbatim}
+\end{scriptsize}
+
+Z punktu widzenia programisty sprawa jest więc prosta - jedna i ta sama klasa może występować w wielu postaciach, za każdym
+razem parametr typowy ukonkretnia się tak, jak wynika to z kontekstu użycia. Typy generyczne mogą być argumentami klas
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Foo<T>
+{
+    ...
+}
+\end{verbatim}
+\end{scriptsize}
+
+metod w klasach 
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Foo
+{
+    public void Bar<T>( T t )
+    {
+        ...
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+lub interfejsów
+
+\begin{scriptsize}
+\begin{verbatim}
+public interface IFoo<T>
+{
+    void Bar(T t);
+}
+
+public interface Qux
+{
+    void Baz<T>(T t);
+}
+\end{verbatim}
+\end{scriptsize}
+
+Nie ma również ograniczeń na liczbę parametrów typowych, może ich być wiele, w tym - część może być na poziomie typu
+(klasy lub interfejsu) a część na poziomie metody
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Foo<U,V>
+{
+    public void Bar<S,T>(U u, V v, S s, T t)
+    {
+
+    }
+}
+...
+Foo<int, string> foo = new Foo<int, string>();
+foo.Bar<double, char>(1, "foo", 2.1, 'c');
+\end{verbatim}
+\end{scriptsize}
+
+W tym ostatnim przypadku nie ma nawet potrzeby ukonkretniania parametrów typowych przy wywołaniu metody,
+ponieważ kompilator może odtworzyć typy automatycznie z kontekstu użycia
+
+\begin{scriptsize}
+\begin{verbatim}
+// to
+foo.Bar(1, "foo", 2.1, 'c');
+
+// jest równoważne temu
+foo.Bar<double, char>(1, "foo", 2.1, 'c');
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Ograniczenia na typy generyczne}
+
+Może się wydawać, że mechanizm typów generycznych to całkiem sporo nowych możliwości. Czar pryska w chwili
+kiedy oprócz danych, klasa musi zawierać również metody.
+
+Klasa wektora generycznego z poprzedniego podrozdziału jest bardzo prosta - zawiera wyłącznie dane.
+Próba implementacji jakiegokolwiek prostego algorytmu jest ilustracją wspomnianej trudności. Niech tym prostym
+algorytmem będzie dodawanie wektorów; do bieżącego wektora ({\tt this}) będzie dodawany wektor przesunięcia, a wynik
+ma być sumą obu wektorów:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector( T x, T y )
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+
+    public Vector<T> Add( Vector<T> v )
+    {
+        return new Vector<T>(this.X + v.X, this.Y + v.Y); // <- czy tak można?
+    }
+}
+...
+Error	CS0019	Operator '+' cannot be applied to operands of type 'T' and 'T'	
+\end{verbatim}
+\end{scriptsize}
+
+Sytuacja jest szczególnie zaskakująca dla programistów mających doświadczenie z klasami szablonowymi w C++, gdzie
+analogiczna konstrukcja przechodzi bez problemów:
+
+\begin{scriptsize}
+\begin{verbatim}
+template <class T> 
+class Vector
+{
+public:
+
+    Vector()
+    {
+
+    }
+    Vector(T x, T y)
+    {
+        this->X = x;
+        this->Y = y;
+    }
+
+    T X;
+    T Y;
+
+    Vector Add(Vector const& v)
+    {
+        return Vector(this->X + v.X, this->Y + v.Y);
+    }
+};
+
+int main()
+{
+    Vector<int> v1(1, 0);
+    Vector<int> v2(2, 1);
+
+    // w C++ ok
+    Vector<int> v3 = v1.Add(v2);
+}
+\end{verbatim}
+\end{scriptsize}
+
+Zaobserwowana różnica ilustruje {\bf fundamentalną różnicę} w sposobie implementacji typów generycznych między
+C\# a C++.
+
+W języku C++ klasa szablonowa jest traktowana podobnie jak {\bf makrodefinicja} i w trakcie kompilacji samej klasy
+generycznej kompilator nie próbuje rozstrzygać czy napotkany w wyrażeniu arytmetycznym operator {\tt +}
+ma sens czy nie w ogólnym przypadku.
+
+Dopiero w trakcie ukonkretnienia szablonu typem, w tym przypadku {\tt int}, kompilator {\em rozwija definicję klasy szablonowej}
+i napotyka na wyrażenie w którym po obu stronach {\tt +} występują wartości typu {\tt int}.
+
+W C++ problemem byłoby dopiero
+
+\begin{scriptsize}
+\begin{verbatim}
+class Person
+{
+    Person()
+    {
+
+    }
+};
+
+Vector<Person> p1;
+Vector<Person> p2;
+
+Vector<Person> p3 = p1.Add(p2);
+...
+Error	C2676	binary '+': 'Person' does not define this operator or a conversion 
+                to a type acceptable to the predefined operator
+Error	C2088	'+': illegal for class	
+\end{verbatim}
+\end{scriptsize}
+
+i słusznie - dla klasy {\tt Person} operacja {\tt +} z pewnością nie ma żadnej sensownej interpretacji, a
+żadna nie została dostarczona. Rozwiązanie w tym przypadku polega własnie na dostarczeniu takiej
+implementacji operatora {\tt +} który nada sens wyrażeniu arytmetycznemu {\tt Person + Person}:
+
+\begin{scriptsize}
+\begin{verbatim}
+class Person
+{
+public:
+    Person()
+    {
+
+    }
+    Person operator+(const Person &p) 
+    {
+        // cokolwiek byleby zdefiniować operator
+        return Person();
+    }
+};
+\end{verbatim}
+\end{scriptsize}
+
+W C\# typy generyczne nie są makrodefinicjami, są w pełni kompilowalnymi klasami, które muszą mieć sens 
+bez względu na to czy i jak będą ukonkretniane. Oznacza to że kompilator musi umieć nadać sens operatorowi {\tt +}
+oraz każdemu innemu wyrażeniu w którym występuje zmienna otwartego typu
+bez względu na to czy kiedyś, gdzieś, klasa generyczna będzie ukonkretniana typem {\tt int}, {\tt Person} czy
+jakimkolwiek innym.
+
+Zauważmy, że główna trudność w C\# polega więc na tym, że skoro w klasie generycznej zmienna typowa może oznaczać
+{\em dowolny} typ, to problem nie dotyczy tylko operatora {\tt +}, jak w przykładzie klasy {\tt Vector}. Skala problemu
+jest szersza - o type nie wiadomo niczego, nie wiadomo więc czy można do niego zastosować operator {\tt new} albo czy można
+na zmiennej tego typu wywoływać jakiekolwiek metody:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Foo<T>
+{
+    public void Bar(T t)
+    {
+        T _new = new T(); // czy na pewno wolno new T()?
+
+        t.Qux();          // czy T ma metodę Qux()?
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Żadna z przykładowych problematycznych linii w powyższym przykładzie nie powinna się skompilować. 
+Kompilator nie może zezwolić na użycie operatora {\tt new}, ponieważ w miejscu ukonkretnienia typu {\tt Foo} może 
+pojawić się ukonkretnienie typem, do którego {\tt new} nie ma zastosowania, na przykład {\tt int}. Z tego samego
+powodu kompilator nie może dopuścić do skompilowania kodu, w którym na zmiennej nieznanego typu wywołana jest jakakolwiek metoda.
+
+Język C\# z tymi problemami radzi sobie proponując tzw. {\bf ograniczenia typowe}. Są to dodatkowe warunki narzucane
+statycznie na typy ukonkretniające typ generyczny, które są rodzajem kontraktu między klasą która używa typu
+a klasą która będzie go ukonkretniać. Dzięki ograniczeniu typowemu klasa używająca zmiennej typowej dostanie dostęp
+do większej liczby operacji które zostaną uznane za dozwolone, z kolei w miejscu ukonkretnienia kompilator
+odrzuci typy które nie spełniają ograniczeń.
+
+Dozwolone są następujące ograniczenia typowe:
+\begin{itemize}
+\item {\tt struct} - ograniczenie spełniają tylko typy proste (struktury) ({\tt int} itp.)
+\item {\tt class} - ograniczenie spełniają tylko typy referencyjne
+\item {\tt new()} - ograniczenie spełniają tylko typy posiadające konstruktor bezargumentowy (i być może inne konstruktory)
+\item {\tt : I} - ograniczenie spełniają tylko typy dziedziczące z {\tt I} gdzie {\tt I} jest jakimś konkretnym interfejsem znanym w trakcie kompilacji
+\item {\tt : C} - ograniczenie spełniają tylko typy dziedziczące z {\tt C} gdzie {\tt C} jest jakimś konkretnym typem znanym w trakcie kompilacji
+\end{itemize}
+
+Nałożenie ograniczenia wymaga dopisania do definicji klasy generycznej słowa kluczowego {\tt where} i wskazaniu jednego 
+(lub wielu, w sytuacji kiedy nie są ze sobą sprzeczne) ograniczenia. Nałożenie ograniczenia daje możliwość użycia
+funkcjonalności narzuconej ograniczeniem.
+
+\begin{scriptsize}
+\begin{verbatim}
+public interface IQux
+{
+    void Qux();
+}
+
+public class Foo<T>
+    where T : IQux, new()
+{
+    public void Bar(T t)
+    {
+        T _new = new T(); // czy na pewno wolno new T()?
+        // tak, wolno, bo T ma ograniczenie new()
+
+        t.Qux();          // czy T ma metodę Qux()?
+        // tak, ma, bo T ma ograniczenie : IQux
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Próba ukonkretnienia klasy generycznej typem niespełniającym ograniczeń nie uda się na etapie kompilacji:
+
+\begin{scriptsize}
+\begin{verbatim}
+public class C1 : IQux
+{
+    public void Qux() { }
+}
+
+public class C2 : IQux
+{
+    public C2(int n) { }
+    public void Qux() { }
+}
+
+public class C3
+{
+    
+}
+...
+
+Foo<C1> c1 = new Foo<C1>();
+Foo<C2> c2 = new Foo<C2>();
+Foo<C3> c3 = new Foo<C3>();
+
+...
+Error	CS0310	'C2' must be a non-abstract type with a public parameterless 
+                constructor in order to use it as parameter 'T' in the generic type 
+                or method 'Foo<T>'	
+
+Error	CS0311	The type 'C3' cannot be used as type parameter 'T' 
+                in the generic type or method 'Foo<T>'. There is no implicit reference 
+                conversion from 'C3' to 'IQux'.	
+\end{verbatim}
+\end{scriptsize}
+
+W powyższym przykładzie, tylko {\tt C1} spełnia oba ograniczenia typowe - ma bezargumentowy konstruktor i
+implementuje oczekiwany interfejs. Klasa {\\ C2} nie ma bezargumentowanego konstruktora, a {\tt C3} nie
+implementuje wskazanego interfejsu. 
+
+Podsumujmy więc jeszcze raz różnice między klasami szablonowymi w C++ a typami generycznymi w C\#:
+\begin{itemize}
+\item klasy szablonowe w C++ są traktowane podobnie jak makrodefinicje, są rozwijane w trakcie kompilacji w miejsach
+ukonkretnienia. Z tego powodu nie ma łatwego uniwersalnego sposobu, 
+żeby dystrybuować klasy szablonowe w postaci {\bf skompilowanej} w taki sposób żeby w miejscu użycia, gdzie
+kod źródłowynie jest dostępny
+\item typy generyczne w C\# są w pełni kompilowane i mogą być dystrybuowane w postaci skompilowanej i ukonkretniane
+w miejscu użycia w sposób zgodny z ograniczeniami, jest to możliwe dzięki mechanizmowi ograniczeń typowych, który
+statycznie nakłada dodatkowe warunki na typy którymi można ukonkretnić typ generyczny
+\end{itemize}
