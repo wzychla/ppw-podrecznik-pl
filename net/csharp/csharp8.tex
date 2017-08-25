@@ -1,5 +1,7 @@
 ﻿\subsection{Typy generyczne}
 
+\subsubsection{Motywacja}
+
 Rozważmy przykład klasy wektora dwuwymiarowego o składowych całkowitoliczbowych:
 
 \begin{scriptsize}
@@ -430,13 +432,504 @@ W powyższym przykładzie, tylko {\tt C1} spełnia oba ograniczenia typowe - ma 
 implementuje oczekiwany interfejs. Klasa {\\ C2} nie ma bezargumentowanego konstruktora, a {\tt C3} nie
 implementuje wskazanego interfejsu. 
 
-Podsumujmy więc jeszcze raz różnice między klasami szablonowymi w C++ a typami generycznymi w C\#:
+Typy generyczne dobrze poddają się refleksji, dla dowolnego typu można za pomocą refleksji sprawdzić
+czy jest to typ generyczny, czy jest otwarty (możliwy do ukonkretnienia) czy ukonkretniony, można
+również konwertować typy z otwartych do ukonkretnionych i w drugą stronę.
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Foo<T>
+{
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        ReflectionDemo1();
+        ReflectionDemo2();
+        Console.ReadLine();
+    }
+
+    /// <summary>
+    /// Pobranie otwartego typu generycznego przez refleksję 
+    /// i ukonkretnienie go typem int
+    /// </summary>
+    static void ReflectionDemo1()
+    {
+        // typ generyczny
+        Type foo_t = typeof(Foo<>);
+        foreach (Type type in foo_t.GetGenericArguments())
+        {
+            Console.WriteLine("Argument typowy: " + type.Name);
+        }
+
+        // ukonkretnienie
+        Type foo_int = foo_t.MakeGenericType(typeof(int));
+
+        object ofi = Activator.CreateInstance(foo_int);
+
+        Console.WriteLine(ofi.GetType().ToString());
+    }
+
+    /// <summary>
+    /// "Otwarcie" ukonkretnionego typu generycznego
+    /// </summary>
+    static void ReflectionDemo2()
+    {
+        Type foo_int = typeof(Foo<int>);
+
+        Type foo_t = foo_int.GetGenericTypeDefinition();
+
+        Console.WriteLine(foo_t.ToString());
+    }
+}
+
+...
+Argument typowy: T
+ConsoleApplication18.Foo`1[System.Int32]
+ConsoleApplication18.Foo`1[T]
+\end{verbatim}
+\end{scriptsize}
+
+\subsubection{Ograniczenia typowe w praktyce}
+
+Z bagażem wiedzy na temat ograniczeń typowych warto wrócić do rzeczywistego przykładu, który był punktem wyjścia
+do dyskusji, do przykładu klasy {\tt Vector<T>} i przekonać się na ile mechanizm ograniczeń typowych rzeczywiście
+pomaga poradzić sobie w takim przypadku.
+
+Możliwość zdefiniowania dla klasy przeciążonego operatora {\tt +}, która rozwiązuje przypadek dla własnej klasy 
+{\tt Person} dla klasy szablonowej w C++, tu w języku C\# w ogóle nie ma zastosowania - nie ma bowiem takiego
+ograniczenia typowego, które pozwoliłoby wymagać dla klasy zdefiniowanego operatora {\tt +}. Szczególnym przypadkiem
+są operatory porównania ('<'), ponieważ w bibliotece standardowej istnieje odpowiadający im interfejs ({\tt IComparable}), 
+który w dodatku jest implementowany przez szereg klas z biblioteki standardowej.
+
+Gdyby więc w klasie {\tt Vector} pojawiła się hipotetyczna metoda w której implementacji użyty był operator porównania
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+{
+    ...
+    public bool ShorterOnX( Vector<T> v )
+    {
+        return this.X < v.X;
+    }    
+}
+\end{verbatim}
+\end{scriptsize}
+
+(należy zwrócić uwagę że w tej hipotetycznej metodzie nie porównuje się długości wektorów wyliczanych
+zgodnie z regułami algebry, bo do takiego wyliczenia znów potrzebne byłyby operatory matematyczne)
+
+to taki szczególny kod zależny od operatora {\tt <} można zamienić na poprawny
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+    where T : IComparable
+{
+    ...
+    public bool ShorterOnX( Vector<T> v )
+    {
+        return this.X.CompareTo( v.X ) < 0;
+    }    
+}
+\end{verbatim}
+\end{scriptsize}
+
+wykorzystujący zakładaną semantykę działania operacji {\tt CompareTo}. W takim przypadku klasa generyczna
+dawałaby się ukonkretnić zarówno typami wbudowanymi (np. {\tt int} - ponieważ {\tt int} implementuje interfejs
+{\tt IComparable}) jak i własnymi (pod warunkiem zaimplementowania w nich interfejsu {\tt IComparable}).
+
+Ale co z operatorem {\tt +} w wyrażeniu {\tt this.X + v.X}? Jak już powiedziano, operator {\tt +} 
+nie posiada odpowiadającego mu interfejsu w bibliotece standardowej.
+
+\subsubsection{Abstrakcja operacji jako wymagania danego typu}
+
+Jedno z możliwych rozwiązań szłoby więc w stronę zdefiniowania własnego interfejsu na wzór {\tt IComparable}, który
+reprezentowałby abstrakcję operacji dodawania
+
+\begin{scriptsize}
+\begin{verbatim}
+public interface IAddable<T>
+{
+    T AddTo( T item );
+}
+\end{verbatim}
+\end{scriptsize}
+
+Refaktoryzacja klasy {\tt Vector} uwzględniająca nowy interfejs i poprawnie implementująca dodawanie wektorów
+wyglądałaby wtedy tak
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+    where T : IAddable<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector( T x, T y )
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+
+    public Vector<T> Add( Vector<T> v )
+    {
+        return new Vector<T>(this.X.AddTo(v.X), this.Y.AddTo(v.Y));
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+To rozwiązanie, aczkolwiek poprawnie od strony technicznej, jest rozczarowująco niepraktyczne. Nie ma bowiem
+żadnej, najmniejszej możliwości na przekonanie wbudowanego typu {\tt int} żeby zechciał implementować
+nowo zdefiniowany interfejs {\tt IAddable} - klasy biblioteki standardowej są bowiem zamknięte na takie modyfikacje.
+Rozwiązanie polegające na wyniesieniu operacji {\tt +} do osobnego interfejsu na typie {\tt T} nie da się więc
+zastosować w żadnym innym przypadku niż do implementacji wektora własnych typów. A ponieważ typy proste takie jak
+{\tt int} są zamknięte również na dziedziczenie po nich, to rozwiązanie można potraktować wyłącznie jako ciekawostkę.
+
+\subsubsection{Abstrakcja operacji jako zobowiązanie typu pomocniczego}
+
+Skoro więc nie można zmusić istniejącego typu do implementowania abstrakcji operacji dodawania, można tę operację
+wynieść do całkowicie osobnej abstrakcji. Inaczej mówiąc, można zrobić z interfejsem {\tt IAddable} czym dla interfejsu
+{\tt IComparable} jest {\tt IComparer} - wynieść operację poza typ do którego ona się odnosi.
+
+\begin{scriptsize}
+\begin{verbatim}
+public interface IAdder<T>
+{
+    T Add(T t1, T t2);
+}
+\end{verbatim}
+\end{scriptsize}
+
+Klasa {\tt Vector} przestaje sama implementować interfejs {\tt IAddable}, zamiast tego wymaga ona {\bf zewnętrznej}
+implementacji interfejsu dodającego wartości. Technicznie nie ma znaczenia jak ten zewnętrzny obiekt będzie
+dostarczony, może być wymaganym argumentem konstruktora, może być dostarczony jako argument metody. 
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector(T x, T y)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+
+    public Vector<T> Add(Vector<T> v, IAdder<T> adder)
+    {
+        return new Vector<T>(adder.Add(this.X, v.X), adder.Add(this.Y, v.Y));
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+W takiej wersji klasa generycznego wektora poradzi sobie z dodawaniem wektorów dowolnego typu, o ile tylko
+zostanie z zewnątrz zasilona implementacją "dodawacza":
+
+\begin{scriptsize}
+\begin{verbatim}
+public class IntAdder : IAdder<int>
+{
+    public int Add( int t1, int t2 )
+    {
+        return t1 + t2;
+    }
+}
+...
+Vector<int> v1 = new Vector<int>(1, 0);
+Vector<int> v2 = new Vector<int>(2, 1);
+
+Vector<int> v3 = v1.Add(v2, new IntAdder());
+\end{verbatim}
+\end{scriptsize}
+
+To dużo lepsze rozwiązanie niż poprzednie, pozostawia jednak pewien niedosyt "stylistyczny" - to nie wygląda zbyt
+elegancko kiedy wydawałoby się prosta klasa wektora nie realizuje sama z siebie tak prostej rzeczy jak dodawanie, tylko
+musi operację dodawania delegować do zewnętrznego obiektu, który z kolei musi być jakoś dostarczony. Mówiąc inaczej,
+chciałoby się mimo wszystko móc pisać
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<int> v3 = v1.Add(v2);
+\end{verbatim}
+\end{scriptsize}
+
+raczej niż
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<int> v3 = v1.Add(v2, new IntAdder());
+\end{verbatim}
+\end{scriptsize}
+
+Istnieją co najmniej dwa rozwiązania. 
+
+\subsubsection{Programowanie dynamiczne}
+
+Pierwsze rozwiązanie polega na przerzuceniu ciężaru wykonania operacji {\tt +} na czas {\bf wykonania} programu, a nie na 
+czas kompilacji. Szerzej ta możliwość zostanie przedstawiona w kolejnych rozdziałach, tu ograniczymy się do jej zademonstrowania.
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Vector<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector(T x, T y)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+
+    public Vector<T> Add(Vector<T> v)
+    {
+        dynamic _x = this.X;
+        _x += v.X;
+
+        dynamic _y = this.Y;
+        _y += v.Y;
+
+        return new Vector<T>((T)_x, (T)_y);
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Cały ciężar rozwiązania spoczywa teraz na środowisku uruchomieniowym - dla kodu w którym zmienna jest typu 
+{\tt dynamic} kompilator wygeneruje kod, który każde wyrażenie zawierające tę zmienną będzie próbował "wiązać"
+w trakcie działania programu (przez "wiązać" rozumiemy tu: wyszkukiwać czy aktualny typ zmiennej ma metody
+które wyrażenie próbuje wywołać lub czy implementuje inne wymagania, takie jak wymaganie istnienia operatora{\tt +}).
+
+Taki kod ma dwie wady:
 \begin{itemize}
-\item klasy szablonowe w C++ są traktowane podobnie jak makrodefinicje, są rozwijane w trakcie kompilacji w miejsach
-ukonkretnienia. Z tego powodu nie ma łatwego uniwersalnego sposobu, 
-żeby dystrybuować klasy szablonowe w postaci {\bf skompilowanej} w taki sposób żeby w miejscu użycia, gdzie
-kod źródłowynie jest dostępny
-\item typy generyczne w C\# są w pełni kompilowane i mogą być dystrybuowane w postaci skompilowanej i ukonkretniane
-w miejscu użycia w sposób zgodny z ograniczeniami, jest to możliwe dzięki mechanizmowi ograniczeń typowych, który
-statycznie nakłada dodatkowe warunki na typy którymi można ukonkretnić typ generyczny
+\item jest wolniejszy, dynamiczne wiązanie spowalnia kod od kilku do kilkudziesięciu razy
+\item może powodować wyjątki dopiero w trakcie działania, przez błędy niewykrywalne w trakcie kompilacji
 \end{itemize}
+
+Istotnie, tak zaimplementowany wektor tym razem bezbłędnie zadziała dla liczb całkowitych
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<int> v1 = new Vector<int>(1, 0);
+Vector<int> v2 = new Vector<int>(2, 1);
+
+Vector<int> v3 = v1.Add(v2);
+\end{verbatim}
+\end{scriptsize}
+
+ale nie zadziała dla klasy niedostarczającej implementacji operacji dodawania, co więcej, wyjątek pojawia się 
+dopiero w trakcie działania programu
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Person
+{
+    public string Name;
+
+    public Person() { }
+    public Person(string Name)
+    {
+        this.Name = Name;
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Tu próba uruchomienia kodu
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<Person> p1 = new Vector<Person>(new Person("Jan"), new Person("Kowalski"));
+Vector<Person> p2 = new Vector<Person>(new Person("Zofia"), new Person("Malinowska"));
+
+Vector<Person> p3 = p1.Add(p2);
+\end{verbatim}
+\end{scriptsize}
+
+spowoduje zgłoszenie wyjątku w trakcie działania programu
+
+\begin{scriptsize}
+\begin{verbatim}
+'Microsoft.CSharp.RuntimeBinder.RuntimeBinderException' occurred in System.Core.dll
+
+Additional information: Nie można zastosować operatora „+=” do argumentów operacji 
+typu „Person” lub „Person”.
+\end{verbatim}
+\end{scriptsize}
+
+Szczęśliwie, remedium polega na dodaniu implementacji przeciążonego operatora dla typu
+
+\begin{scriptsize}
+\begin{verbatim}
+public class Person
+{
+    public string Name;
+
+    public Person() { }
+    public Person(string Name)
+    {
+        this.Name = Name;
+    }
+
+    public static Person operator+(Person p1, Person p2)
+    {
+        return new Person(p1.Name + p2.Name);
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+po którym to dodaniu, wynik dodawania wektorów jest już poprawny.
+
+\subsubsection{Lokalna fabryka "dodawaczy"}
+
+Drugie rozwiązanie polega na dostarczeniu klasy gromadzącej wiedzę na temat wszystkich możliwych "dodawaczy"
+dla wszystkich możliwych typów. Klasa wektora nie będzie już wymagała zasilenia jej zewnętrzną informacją, bo
+sama będzie wiedziała gdzie tej informacji szukać. Fabryka zostanie wyposażona w podstawową wiedzę o
+dodawaniu kilku wbudowanych typów i udostępni interfejs do rejestrowania kolejnych. Zastosowany tu wzorzec projektowy
+w inżynierii oprogramowania nosi nazwę {\bf Factory}.
+
+Jako że rozwiązanie wykorzystuje kilka mechanizmów, które do tej pory nie były prezentowane, zachęca się Czytelnika do
+powrotu do tej części podręcznika po lekturze kolejnych rozdziałów, w których nowe elementy zostaną szczegółowo
+omówione.
+
+\begin{scriptsize}
+\begin{verbatim}
+public class AdderFactory
+{
+    private static Dictionary<Type, object> _adders = 
+        new Dictionary<Type, object>();           // 0
+
+    static AdderFactory()
+    {
+        _adders.Add(typeof(int), new IntAdder()); // 1
+    }
+
+    public static void RegisterAdder<T>( IAdder<T> adder )
+    {
+        _adders.Add(typeof(T), adder);     // 2
+    }
+
+    public IAdder<T> CreateAdder<T>()
+    {
+        foreach ( Type t in _adders.Keys ) // 3
+        {
+            if (t == typeof(T))            // 4
+                return (IAdder<T>)_adders[t];
+        }
+
+        throw new ArgumentException(
+            string.Format("Brak obsługi logiki dodawania dla typu {0}",
+                typeof(T).Name) );
+    }
+}
+
+public class Vector<T>
+{
+    public Vector()
+    {
+    }
+
+    public Vector(T x, T y)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public T X { get; set; }
+    public T Y { get; set; }
+
+    public Vector<T> Add(Vector<T> v)
+    {
+        IAdder<T> adder = new AdderFactory().CreateAdder<T>(); // 5
+
+        return new Vector<T>(adder.Add( this.X, v.X), adder.Add( this.Y, v.Y ));
+    }
+}
+\end{verbatim}
+\end{scriptsize}
+
+Klasa fabryki przechowuje statyczną mapę, przyporządkowującą typom klasy realizujące algorytmy dodawania
+dla nich ({\tt // 0}). Wykorzystano tu nieomawianą do tej pory biblioteczną kolekcję generyczną {\tt Dictionary},
+w której kluczami są typy, a wartościami - klasy implementujace interfejs {\tt IAdder}. Ponieważ ograniczenie typowe
+nie może zmieniać się dla każdego elementu słownika, jako typ wartości musi być tu wybrany typ {\tt object}.
+
+Dalej, klasa fabryki rejestruje znane jej implementacje (tu: tylko jedną ale łatwo to rozszerzyć, {\tt // 1}) oraz
+przygotowuje możliwość rejestrowania kolejnych ({\tt // 2}). 
+
+Najistotniejsza jest tu metoda {\tt CreateAdder} tworzenia instancji obiektu {\tt IAdder<T>} dla zadanego {\tt T}.
+Metoda ta iteruje po zarejestrowanych implementacjach, szuka takiej której klucz odpowiada żądanemu typowi ({\tt // 3}) i 
+zwraca zarejestrowany obiekt rzutując go na oczekiwany interfejs ({\tt // 4}).
+
+Sama klasa wektora używa fabryki do wydobycia instancji obiektu dodającego wartości i używa jej ({\tt 5}).
+
+Takie rozwiązanie jest najbardziej eleganckie ze wszystkich do tej pory przedstawionych, choć nadal ma pewne wady.
+
+Zadziała natychmiast dla wektorów liczb:
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<int> v1 = new Vector<int>(1, 0);
+Vector<int> v2 = new Vector<int>(2, 1);
+
+Vector<int> v3 = v1.Add(v2);
+\end{verbatim}
+\end{scriptsize}
+
+ale dla wektorów wartości własnego typu zgłosi wyjątek w czasie działania programu
+
+\begin{scriptsize}
+\begin{verbatim}
+Vector<Person> p1 = new Vector<Person>(new Person("Jan"), new Person("Kowalski"));
+Vector<Person> p2 = new Vector<Person>(new Person("Zofia"), new Person("Malinowska"));
+
+Vector<Person> p3 = p1.Add(p2);
+...
+An unhandled exception of type 'System.ArgumentException' occurred in ConsoleApplication.exe
+
+Additional information: Brak obsługi logiki dodawania dla typu Person
+\end{verbatim}
+\end{scriptsize}
+
+Tym razem należy fabrykę nauczyć tego na czym polega dodawanie obiektów typu {\tt Person} przez 
+jednokrotne zarejestrowanie odpowiedniej logiki w fabryce
+
+\begin{scriptsize}
+\begin{verbatim}
+public class PersonAdder : IAdder<Person>
+{
+    public Person Add( Person p1, Person p2 )
+    {
+        return new Person(p1.Name + p2.Name);
+    }
+}
+...
+AdderFactory.RegisterAdder(new PersonAdder());
+
+Vector<Person> p1 = new Vector<Person>(new Person("Jan"), new Person("Kowalski"));
+Vector<Person> p2 = new Vector<Person>(new Person("Zofia"), new Person("Malinowska"));
+
+Vector<Person> p3 = p1.Add(p2);
+\end{verbatim}
+\end{scriptsize}
