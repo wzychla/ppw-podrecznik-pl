@@ -1,0 +1,132 @@
+\subsection{Kolekcje generyczne - {\tt System.Collections.Generic}}
+
+Wraz z wyposażeniem języka w mechanizm typów generycznych, omówiony wcześniej podsystem kolekcji niegenerycznych, 
+{\tt System.Collections}, został rozszerzony o wsparcie dla kolekcji generycznych. W ramach prezentacji podsystemu zwrócimy
+uwagę na kolekcje, które są generycznymi odpowiednikami tych kolekcji niegenerycznych, które już omówiono:
+
+\begin{center}
+$$\begin{array}{ll}
+\mbox{Kolekcja generyczna} & \mbox{Odpowiadająca kolekcja niegeneryczna}  \\
+\hline 
+{\tt List<T>} & {\tt ArrayList} \\
+{\tt Dictionary<T>} & {\tt Hashtable} \\
+{\tt Stack<T>} & {\tt Stack} \\
+{\tt Queue<T>} & {\tt Queue} 
+\end{array}$$
+\end{center}
+
+Biblioteka kolekcji generycznych to bardzo oczywiste zastosowanie mechanizmu typów generycznych. Dzięki konieczności
+ukonkretnienia kolekcji typem elementu, pomyłka w wyniku której do kolekcji generycznej trafiłby element niewłaściwego typu
+jest wykrywana w trakcie kompilacji, w odróżnieniu od kolekcji niegenerycznej gdzie ewentualne odkrycie takiego problemu
+możliwe jest dopiero w trakcie działania programu i to dopiero w miejscu, w którym następuje odczyt danych z kolekcji.
+
+Porównajmy kod który powoduje wyjątek w trakcie działania
+
+\begin{scriptsize}
+\begin{verbatim}
+class Program
+{
+    static void Main(string[] args)
+    {
+        ArrayList alist = new ArrayList();
+        alist.Add( 1 );
+        alist.Add( "2" ); // <- czy na pewno?
+
+        foreach ( int i in alist ) // <- wartości muszą być int
+        {
+            Console.WriteLine(i);
+        }
+    }
+}
+...
+An unhandled exception of type 'System.InvalidCastException' occurred in ConsoleApplication.exe
+\end{verbatim}
+\end{scriptsize}
+
+z kodem który się nawet nie skompiluje
+
+\begin{scriptsize}
+\begin{verbatim}
+class Program
+{
+    static void Main(string[] args)
+    {
+        List<int> alist = new List<int>();
+        alist.Add(1);
+        alist.Add("2");
+
+        foreach ( int i in alist )
+        {
+            Console.WriteLine(i);
+        }
+    }
+}
+...
+Error	CS1503	Argument 1: cannot convert from 'string' to 'int'	
+\end{verbatim}
+\end{scriptsize}
+
+Odpowiednikiem kolekcji nie ograniczającej typu elementu podczas kompilacji byłby {\tt List<object>} aczkolwiek
+w praktyce bardzo rzadko zachodzi potrzeba takiego luźnego ukonkretniania kolekcji, może to wręcz świadczyć
+o jakimś problemie projektowym. W sytuacji, w której typy obiektów w kolekcji generycznej nie są bezpośrednio powiązane
+w hierarchii dziedziczenia, zawsze istnieje możliwość ukonkretniania kolekcji generycznej interfejsem, zamiast konkretnym typem:
+
+\begin{scriptsize}
+\begin{verbatim}
+class Program
+{
+    static void Main(string[] args)
+    {
+        List<I> alist = new List<I>();
+        alist.Add(new A());
+        alist.Add(new B());
+
+        foreach ( I i in alist )
+        {
+            // ...
+        }
+    } 
+}
+
+public interface I { }
+
+public class A : I { }
+
+public class B : I { }
+\end{verbatim}
+\end{scriptsize}
+
+Podobnie zachowuje się {\tt Dictionary<T, K>} który jest kolekcją asocjacyjną
+
+\begin{scriptsize}
+\begin{verbatim}
+static void Main(string[] args)
+{
+    Dictionary<int, string> dict = new  Dictionary<int, string>();
+    dict.Add(1, "foo");
+    dict.Add(2, "bar");
+
+    foreach ( KeyValuePair<int, string> i in dict )
+    {
+        // ...
+    }
+
+    foreach ( int i in dict.Keys )
+    {
+        // ...
+    }
+
+    foreach ( string s in dict.Values )
+    {
+        // ...
+    }
+} 
+\end{verbatim}
+\end{scriptsize}
+
+Z uwagi na omówioną wcześniej charakterystykę typów generycznych, 
+we współczesnym programowaniu w C\# w zasadzie sporadycznie korzysta się z kolekcji niegenerycznych. Jest to
+najbardziej jaskrawe w przypadku prostych kolekcji ukonkretnianych typami prostymi ({\tt List<int>}), które przez
+sposób translacji kodu generycznego do kodu natywnego przez kompilator JIT działają zwyczajnie szybciej niż
+ich niegeneryczne odpowiedniki ({\tt ArrayList}), w których każda wartość typu prostego musi być pakowana i odpakowywana
+aby stać się wartością przekazywaną przez referencję ({\tt object}).
