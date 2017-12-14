@@ -680,12 +680,16 @@ class CExample
 \end{verbatim}
 \end{scriptsize}
 
-\subsubsection{Propercje}
+\subsubsection{Właściwości (propercje)}
+\label{properties}
 
-Propercje pozwalają ukryć implementację metody tak, aby z punktu widzenia klienta klasy 
-wyglądała ona jak pole. Propercje stosuje się tam, gdzie istnieje konieczność nadania
-lub pobrania wartości pola, a przy tym wykonać jakieś dodatkowe operacje. Za pomocą propercji można
+Właściwości pozwalają ukryć implementację metody tak, aby z punktu widzenia klienta klasy 
+wyglądała ona jak pole. Właściwości stosuje się tam, gdzie istnieje konieczność nadania
+lub pobrania wartości pola, a przy tym wykonać jakieś dodatkowe operacje. Za pomocą właściwości można
 także ograniczyć dostęp do jakiegoś pola, czyniąc je tylko do odczytu lub tylko do zapisu.
+
+Technicznie - implementacja właściwości ma jeden lub dwa tzw. {\em akcesory} dostępu: 
+akcesor {\bf get} i/lub akcesor {\bf set}, z których pierwszy służy do pobierania wartości, drugi do jej nadawania.
 
 \begin{scriptsize}
 \begin{verbatim}

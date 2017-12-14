@@ -28,13 +28,13 @@ Zapraszam do lektury.
 
 # Mapa drogowa kolejnych wersji
 
-Aktualna wersja: **1.1**
+Aktualna wersja: **1.2**
 
 Data | Numer wersji |Zawartość
 :-:|:-:|:-:
-09.2017 | 1.0       | zmiana struktury wybranych rozdziałów
-09.2017 | **1.1**   | C#2 typy generyczne 
-?? | 1.2   | C#2 yield
+09.2017 | 1.0   | zmiana struktury wybranych rozdziałów
+09.2017 | 1.1   | C#2 typy generyczne 
+12.2017 | **1.2**   | C#2 yield
 ?? | 1.3   | C#3 metody rozszerzające, lambda wyrażenia, linq
 ?? | 1.4   | C#4 DLR
 ?? | 1.5   | C#5 async/await
