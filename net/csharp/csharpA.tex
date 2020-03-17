@@ -62,7 +62,7 @@ class Program
     }
 }
 ...
-Error	CS1503	Argument 1: cannot convert from 'string' to 'int'	
+Error   CS1503  Argument 1: cannot convert from 'string' to 'int'   
 \end{verbatim}
 \end{scriptsize}
 
@@ -130,3 +130,147 @@ najbardziej jaskrawe w przypadku prostych kolekcji ukonkretnianych typami prosty
 sposób translacji kodu generycznego do kodu natywnego przez kompilator JIT działają zwyczajnie szybciej niż
 ich niegeneryczne odpowiedniki ({\tt ArrayList}), w których każda wartość typu prostego musi być pakowana i odpakowywana
 aby stać się wartością przekazywaną przez referencję ({\tt object}).
+
+\subsubsection{Typy funkcyjne}
+\label{typy_funkcyjne_2_0}
+
+Wprowadzenie generyczności pozwoliło na wprowadzenie do interfejsu biblioteki standardowej interesujących typów pozwalających na programowanie w stylu funkcyjnym.
+Rozszerzenia te mają związek z możliwością nadania nazw typom funkcyjnym (omówiony już mechanizm {\tt delegate}) w wersji generycznej.
+
+Ponieważ najwięcej interesujących rozszerzeń otrzymała biblioteczna klasa {\tt List<T>} i to na jej przykładzie warto te rozszerzenia omówić.
+
+\paragraph{Funkcje anonimowe}
+
+Przed omówieniem rozszrzeń funkcyjnych dla języka, warto również zwrócić uwagę na wprowadzoną do języka możliwość definiowania funkcji w sposób anonimowy, czyli
+bez potrzeby nadawania im jawnej nazwy.
+
+Rozważmy przykład sygnatury funkcyjnej i metody przyjmującej funkcję jako argument:
+
+\begin{scriptsize}
+\begin{verbatim}
+public delegate int TheDelegate(int n);
+
+...
+
+public void HighOrderFunction( TheDelegate f )
+{
+    // f jest funkcją, można ją więc wywołać
+    // ale jak ją przekazać jako argument?
+    int result = f( 1 );
+}
+
+...
+
+HighOrderFunction( ?? );
+\end{verbatim}
+\end{scriptsize}
+
+We wcześniejszych wersjach języka, przekazanie funkcji do funkcji jako argumentu wiązało się z koniecznością zdefiniowania takiej funkcji w sposób jawny:
+
+\begin{scriptsize}
+\begin{verbatim}
+public delegate int TheDelegate(int n);
+
+...
+
+public void HighOrderFunction( TheDelegate f )
+{
+    // f jest funkcją, można ją więc wywołać
+    int result = f( 1 );
+}
+
+public int DoubleArgument( int n )
+{
+    return n+n;
+}
+
+...
+
+// wywołanie funkcji z funkcją jako argumentem
+HighOrderFunction(new TheDelegate(Double));
+
+
+\end{verbatim}
+\end{scriptsize}
+
+Od wersji 2.0 języka można nie tylko pominąć {\tt new} na typie funkcyjnym (typie delegata), które kompilator sam sobie doda
+
+\begin{scriptsize}
+\begin{verbatim}
+HighOrderFunction(DoubleArgument);
+\end{verbatim}
+\end{scriptsize}
+
+ale również - funkcji w ogóle nie trzeba definiować na głównym poziomie klasy. Zamiast tego można przekazać ciało funkcji anonimowej
+wprost, w miejscu w którym spodziewany jest argument
+
+\begin{scriptsize}
+\begin{verbatim}
+HighOrderFunction( delegate( int n ) {
+    return n + n;
+});
+\end{verbatim}
+\end{scriptsize}
+
+Warto zwrócić uwagę na tę składnię. Kolejną rewolucję wnosi tu dopiero C\#3.0, który pozwala na definiowanie funkcji anonimowych za pomocą
+tzw. {\em lambda wyrażeń}. Ta składnia zostanie omówiona w rozdziale~\ref{cs3}. 
+
+\paragraph{Akcja - {\tt Action<T>}}
+
+Typ funkcyjny {\tt Action<T>} oznaczaja funkcję która wykonuje jakąś akcję na jednym elemencie określonego typu i nie zwraca żadnych wyników:
+
+\begin{scriptsize}
+\begin{verbatim}
+Action<int> action = delegate (int n)
+{
+    Console.WriteLine(n);
+};
+
+action(1);
+\end{verbatim}
+\end{scriptsize}
+
+\paragraph{Wyszukiwanie - {\tt Predicate<T>}}
+
+Typ funkcyjny {\tt Predicate<T>} to predykat, czyli funkcja przyjmująca obiekt danego typu jako argument i zwracająca wartość typu prawda/fałsz:
+
+\begin{scriptsize}
+\begin{verbatim}
+Predicate<int> predicate = delegate (int n)
+{
+    return n < 5;
+};
+
+Console.WriteLine(predicate(1));
+Console.WriteLine(predicate(6));
+\end{verbatim}
+\end{scriptsize}
+
+\paragraph{Porównanie - {\tt Comparison<T>}}
+
+Typ funkcyjny {\tt Comparison<T>} to funkcja przyjmująca dwa argumenty (nazwijmy je {\em lewy} i {\em prawy}) i zwracająca wynik:
+\begin{itemize}
+\item -1 jeśli lewy parametr jest {\bf mniejszy} niż prawy
+\item 0 jeśli lewy i prawy są równe
+\item 1 jeśli lewy jest {\bf większy} niż prawy
+\end{itemize}
+
+\begin{scriptsize}
+\begin{verbatim}
+Comparison<int> comparison = delegate (int x, int y)
+{
+    if (x < y) return -1;
+    if (x == y) return 0;
+
+    return 1;
+};
+
+Console.WriteLine(comparison(1, 2));
+Console.WriteLine(comparison(1, 1));
+Console.WriteLine(comparison(2, 1));
+\end{verbatim}
+\end{scriptsize}
+
+\subsubsection{Wykorzystanie typów funkcyjnych}
+
+Wrócmy do wspomnianego wyżej w~\ref{typy_funkcyjne_2_0} typu {\tt List<T>} i zobaczmy jak nowe typy funkcyjne wprowadzono do interfejsu tej klasy.
